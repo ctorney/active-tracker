@@ -1,0 +1,180 @@
+# -*- coding: utf-8 -*-
+import FreeCAD as App
+import Part
+
+
+PLATE_THICKNESS = 7
+PLATE_RADIUS = 200
+
+PLATE_WIDTH = 50
+PLATE_LENGTH = 130
+
+doc = App.activeDocument()
+try:
+	doc.removeObject('baseplate2')
+	doc.removeObject('lipoBox')
+
+except:
+	pass
+
+outer = doc.addObject("Part::Cylinder","Cylinder1")
+outer.Height = PLATE_WIDTH
+outer.Radius = PLATE_RADIUS
+outer.Placement = App.Placement(App.Vector(-PLATE_WIDTH/2,0,-PLATE_RADIUS),App.Rotation(App.Vector(0,1,0),90)) 
+
+
+inner = doc.addObject("Part::Cylinder","Cylinder2")
+inner.Height = PLATE_WIDTH
+inner.Radius = PLATE_RADIUS-PLATE_THICKNESS
+inner.Placement = App.Placement(App.Vector(-PLATE_WIDTH/2,0,-PLATE_RADIUS),App.Rotation(App.Vector(0,1,0),90)) 
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outer
+doc.Cut.Tool = inner
+doc.recompute()
+
+cutsolid =doc.addObject("Part::Feature","Cut_solid")
+cutsolid .Label="Cut (Solid)"
+cutsolid .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('Cylinder1')
+doc.removeObject('Cylinder2')
+doc.recompute()
+
+box = doc.addObject("Part::Box", "CutterBox")
+box.Length = PLATE_LENGTH
+box.Width = PLATE_LENGTH
+box.Height = PLATE_LENGTH
+box.Placement = App.Placement(App.Vector(-PLATE_LENGTH/2,-PLATE_LENGTH/2,-PLATE_LENGTH/2),App.Rotation(App.Vector(0,0,1),0)) 
+
+doc.recompute()
+
+
+common = doc.addObject("Part::MultiCommon","Common")
+doc.Common.Shapes = [box,cutsolid,]
+doc.recompute()
+
+baseplate0 = doc.addObject("Part::Feature","baseplate0")
+baseplate0.Label = "baseplate0"
+baseplate0.Shape=Part.Solid(Part.Shell(common.Shape.Faces))
+
+doc.removeObject('Common')
+doc.removeObject('CutterBox')
+doc.removeObject('Cut_solid')
+doc.recompute()
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = baseplate0
+__fillets__ = []
+__fillets__.append((1,5.00,5.00))
+__fillets__.append((3,5.00,5.00))
+__fillets__.append((5,5.00,5.00))
+__fillets__.append((10,5.00,5.00))
+fillet.Edges = __fillets__
+del __fillets__
+#FreeCADGui.ActiveDocument.Common_solid.Visibility = False
+
+doc.recompute()
+
+baseplate1 = App.ActiveDocument.addObject("Part::Feature","baseplate1")
+baseplate1.Label = "baseplate1"
+baseplate1.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('baseplate0')
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = baseplate1
+__fillets__ = []
+__fillets__.append((3,1.00,1.00))
+__fillets__.append((12,1.00,1.00))
+__fillets__.append((14,1.00,1.00))
+__fillets__.append((16,1.00,1.00))
+__fillets__.append((17,1.00,1.00))
+__fillets__.append((18,1.00,1.00))
+__fillets__.append((19,1.00,1.00))
+__fillets__.append((20,1.00,1.00))
+fillet.Edges = __fillets__
+del __fillets__
+#FreeCADGui.ActiveDocument.Common_solid.Visibility = False
+
+doc.recompute()
+
+
+baseplate2 = App.ActiveDocument.addObject("Part::Feature","baseplate2")
+baseplate2.Label = "baseplate2"
+baseplate2.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('baseplate1')
+
+
+blb = 96 # battery length bottom
+bwb = 50 # battery width bottom
+blt = 88 # battery length top
+bwt = 54 # battery width top
+
+lipobox = doc.addObject("Part::Wedge", "lipoBox")
+lipobox.Zmin = -blb/2
+lipobox.Xmin = -bwb/2
+lipobox.Z2min = -blt/2
+lipobox.X2min = -bwt/2
+lipobox.Zmax = blb/2
+lipobox.Xmax = bwb/2
+lipobox.Z2max = blt/2
+lipobox.X2max = bwt/2
+
+lipobox.Ymin = -7
+lipobox.Ymax = 6
+
+
+doc.recompute()
+
+
+#lipobox.Length = 50
+#lipobox.Width = 80
+#lipobox.Height = 20
+lipobox.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+LIPO_WIDTH = 60+2
+LIPO_LENGTH = 42.5+2
+
+LipoFloor = doc.addObject("Part::Box", "LipoFloor")
+LipoFloor.Length = LIPO_LENGTH+1
+LipoFloor.Width = LIPO_WIDTH+1
+LipoFloor.Height = 7
+LipoFloor.Placement = App.Placement(App.Vector(-(LIPO_LENGTH+1)/2,-(LIPO_WIDTH+1)/2,-7),App.Rotation(App.Vector(0,0,1),0)) 
+
+
+
+LIPO_WIDTH = 60+2
+LIPO_LENGTH = 42.5+2
+
+LipoCutterBox = doc.addObject("Part::Box", "LipoCutterBox")
+LipoCutterBox.Length = LIPO_LENGTH
+LipoCutterBox.Width = LIPO_WIDTH
+LipoCutterBox.Height = 10
+LipoCutterBox.Placement = App.Placement(App.Vector(-LIPO_LENGTH/2,-LIPO_WIDTH/2,-4),App.Rotation(App.Vector(0,0,1),0)) 
+
+doc.recompute()
+cutlipobox = doc.addObject("Part::Cut","cutlipobox")
+cutlipobox.Base = lipobox
+cutlipobox.Tool = LipoCutterBox
+doc.recompute()
+
+
+
+lipo1 =doc.addObject("Part::Feature","Cut_solid")
+lipo1 .Label="Lipo Box"
+lipo1 .Shape=Part.Solid(Part.Shell(cutlipobox.Shape.Faces))
+
+doc.removeObject('cutlipobox')
+doc.removeObject('LipoCutterBox')
+doc.removeObject('lipoBox')
+#doc.recompute()
+
+# Put it so the centre top part of the plate is at the origin
+
+#baseplate2.Placement = App.Placement(App.Vector(0,200,0),App.Rotation(App.Vector(0,0,1),0))
+#baseplate2.Placement = App.Placement(App.Vector(0,200,0),App.Rotation(App.Vector(0,0,1),0))
