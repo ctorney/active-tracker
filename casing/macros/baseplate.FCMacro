@@ -4,21 +4,46 @@ import Part
 import BOPTools.JoinFeatures
 
 
+import Mesh
+
+MAX_HEIGHT = 26
+
+# dimensions for plate that attaches to the collar
 PLATE_THICKNESS = 10
 PLATE_RADIUS = 200
 
 PLATE_WIDTH = 50
 PLATE_LENGTH = 140
 
-doc = App.activeDocument()
-try:
-	doc.removeObject('baseplate2')
-	doc.removeObject('lipo2')
-	doc.removeObject('sodaqbox3')
-	doc.removeObject('FullBase3')
+LIPO_WIDTH = 60+2
+LIPO_LENGTH = 42.5+2
+LIPO_HEIGHT = 10 
 
-except:
-	pass
+
+blb = 116 # battery length bottom
+bwb = 50 # battery width bottom
+blt = 108 # battery length top
+bwt = 60 # battery width top
+
+PANEL_WIDTH = 70
+PANEL_LENGTH = 55
+PANEL_HEIGHT = 3
+slb = blt # sodaq length bottom = battery length top
+swb = 60 # sodaq width bottom
+slt = PANEL_WIDTH + 24
+swt = PANEL_LENGTH + 12
+
+
+doc = App.activeDocument()
+
+objs = doc.Objects
+for obj in objs:
+    name = obj.Name
+    doc.removeObject(name)
+
+
+sodaq_chip_and_base = Mesh.insert(u"/home/ctorney/workspace/active-tracker/casing/sodaq_chip_and_base.stl",doc.Label)
+doc.getObject("sodaq_chip_and_base").Placement = App.Placement(App.Vector(-143,101,-16),App.Rotation(App.Vector(0,0,1),0))
 
 outer = doc.addObject("Part::Cylinder","Cylinder1")
 outer.Height = PLATE_WIDTH
@@ -107,23 +132,114 @@ del __fillets__
 doc.recompute()
 
 
-baseplate2 = App.ActiveDocument.addObject("Part::Feature","baseplate2")
-baseplate2.Label = "baseplate2"
-baseplate2.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+baseplate2pre = App.ActiveDocument.addObject("Part::Feature","baseplate2pre")
+baseplate2pre.Label = "baseplate2pre"
+baseplate2pre.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
 
 doc.removeObject('Fillet')
 doc.removeObject('baseplate1')
 
 
-LIPO_WIDTH = 60+2
-LIPO_LENGTH = 42.5+2
-LIPO_HEIGHT = 10 
+### END OF BASIC BASE PLATE
 
 
-blb = 116 # battery length bottom
-bwb = 50 # battery width bottom
-blt = 104 # battery length top
-bwt = 60 # battery width top
+
+RIVET_HEAD_DIAM = 10
+SIDE_OFFSET=15
+FRONT_OFFSET=-3.5
+ScrewCut1 = doc.addObject("Part::Cylinder","ScrewCut1")
+ScrewCut1.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut1.Radius = RIVET_HEAD_DIAM/2
+ScrewCut1.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,-slt/2 -FRONT_OFFSET ,-50),App.Rotation(App.Vector(0,1,0),0)) 
+
+
+
+SIDE_OFFSET=15
+FRONT_OFFSET=-3.5
+ScrewCut2 = doc.addObject("Part::Cylinder","ScrewCut2")
+ScrewCut2.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut2.Radius = RIVET_HEAD_DIAM/2
+ScrewCut2.Placement = App.Placement(App.Vector(+swt/2-SIDE_OFFSET,-slt/2 -FRONT_OFFSET ,-50),App.Rotation(App.Vector(0,1,0),0)) 
+
+
+SIDE_OFFSET=15
+FRONT_OFFSET=-3.5
+ScrewCut3 = doc.addObject("Part::Cylinder","ScrewCut3")
+ScrewCut3.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut3.Radius = RIVET_HEAD_DIAM/2
+ScrewCut3.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,slt/2 +FRONT_OFFSET ,-50),App.Rotation(App.Vector(0,1,0),0)) 
+
+
+SIDE_OFFSET=15
+FRONT_OFFSET=-3.5
+ScrewCut4 = doc.addObject("Part::Cylinder","ScrewCut4")
+ScrewCut4.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut4.Radius = RIVET_HEAD_DIAM/2
+ScrewCut4.Placement = App.Placement(App.Vector(+swt/2-SIDE_OFFSET,slt/2 +FRONT_OFFSET ,-50),App.Rotation(App.Vector(0,1,0),0)) 
+
+
+
+### START OF HOLES INTO BASE
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = baseplate2pre
+cut.Tool = ScrewCut1
+doc.recompute()
+baseplate2pre0 =doc.addObject("Part::Feature","baseplate2pre0")
+baseplate2pre0 .Label="baseplate2pre0"
+baseplate2pre0 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(baseplate2pre.Label)
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = baseplate2pre0
+cut.Tool = ScrewCut2
+doc.recompute()
+
+baseplate2pre1 =doc.addObject("Part::Feature","baseplate2pre1")
+baseplate2pre1 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(baseplate2pre0.Label)
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = baseplate2pre1
+cut.Tool = ScrewCut3
+doc.recompute()
+
+baseplate2pre2 =doc.addObject("Part::Feature","baseplate2pre2")
+baseplate2pre2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(baseplate2pre1.Label)
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = baseplate2pre2
+cut.Tool = ScrewCut4
+doc.recompute()
+
+baseplate2 =doc.addObject("Part::Feature","baseplate2")
+baseplate2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(baseplate2pre2.Label)
+
+doc.removeObject(ScrewCut1.Label)
+doc.removeObject(ScrewCut2.Label)
+doc.removeObject(ScrewCut3.Label)
+doc.removeObject(ScrewCut4.Label)
+
+### END OF HOLES INTO BASE
+
+
+## START OF BATTERY BOX
+
+
 
 lipobox = doc.addObject("Part::Wedge", "lipoBox")
 lipobox.Zmin = -blb/2
@@ -144,7 +260,7 @@ lipobox.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,
 LipoFloor = doc.addObject("Part::Box", "LipoFloor")
 LipoFloor.Length = LIPO_LENGTH+1
 LipoFloor.Width = LIPO_WIDTH+1
-LipoFloor.Height = PLATE_THICKNESS
+LipoFloor.Height = 3 # THICKNESS OF BASE AT THINNEST POINT
 LipoFloor.Placement = App.Placement(App.Vector(-(LIPO_LENGTH+1)/2,-(LIPO_WIDTH+1)/2,-PLATE_THICKNESS),App.Rotation(App.Vector(0,0,1),0)) 
 
 
@@ -171,8 +287,23 @@ lipo1 .Label="Lipo Box"
 lipo1 .Shape=Part.Solid(Part.Shell(cutlipobox.Shape.Faces))
 
 doc.removeObject('cutlipobox')
-doc.removeObject('LipoCutterBox')
 doc.removeObject('lipoBox')
+
+doc.recompute()
+cutlipobox = doc.addObject("Part::Cut","cutlipobox")
+cutlipobox.Base = doc.baseplate2
+cutlipobox.Tool = LipoCutterBox
+doc.recompute()
+
+baseplate21 =doc.addObject("Part::Feature","baseplate21")
+baseplate21 .Label="baseplate21"
+baseplate21 .Shape=Part.Solid(Part.Shell(cutlipobox.Shape.Faces))
+
+doc.removeObject('cutlipobox')
+doc.removeObject('baseplate2')
+
+doc.removeObject('LipoCutterBox')
+
 
 
 
@@ -204,12 +335,11 @@ j.Proxy.execute(j)
 j.purgeTouched()
 for obj in j.ViewObject.Proxy.claimChildren():
     obj.ViewObject.hide()
-#__s__=App.ActiveDocument.Connect.Shape.Faces
-#__s__=Part.Solid(Part.Shell(doc.LipoFloorJoin.Shape.Faces))
+
 lipocase=doc.addObject("Part::Feature","lipocase")
 lipocase.Label="lipocase"
 lipocase.Shape=Part.Solid(Part.Shell(doc.LipoFloorJoin.Shape.Faces))
-#del __s__, __o__
+
 doc.removeObject("LipoFloorJoin")
 doc.removeObject("LipoFloor")
 doc.removeObject("lipo2")
@@ -218,7 +348,7 @@ doc.recompute()
 
 j = BOPTools.JoinFeatures.makeEmbed(name = 'BaseEmbed')
 j.Base = lipocase
-j.Tool = doc.baseplate2
+j.Tool = doc.baseplate21
 j.Proxy.execute(j)
 j.purgeTouched()
 for obj in j.ViewObject.Proxy.claimChildren():
@@ -234,7 +364,7 @@ FullBase0.Shape=Part.Solid(Part.Shell(doc.BaseEmbed.Shape.Faces))
 
 doc.removeObject("BaseEmbed")
 doc.removeObject("lipocase")
-doc.removeObject("baseplate2")
+doc.removeObject("baseplate21")
 #App.getDocument("Unnamed").recompute()
 FullBase=App.ActiveDocument.addObject("Part::Feature","FullBase")
 
@@ -258,14 +388,6 @@ doc.recompute()
 
 ### START OF SODAQ ENCLOSURE
 
-MAX_HEIGHT = 27
-PANEL_WIDTH = 70
-PANEL_LENGTH = 55
-PANEL_HEIGHT = 3
-slb = 104 # sodaq length bottom
-swb = 60 # sodaq width bottom
-slt = PANEL_WIDTH + 4 + 4 + 4 +8
-swt = PANEL_LENGTH + 4 + 4  + 4
 
 sodaqbox = doc.addObject("Part::Wedge", "sodaqbox")
 sodaqbox.Zmin = -slb/2
@@ -311,15 +433,15 @@ doc.removeObject('PanelCutterBox')
 doc.removeObject('sodaqbox')
 
 
-CHIP_WIDTH = 70
+CHIP_WIDTH = 74
 CHIP_LENGTH = 48
-CHIP_HEIGHT = MAX_HEIGHT-6-PANEL_HEIGHT-1 -3 #7-PANEL_HEIGHT
+CHIP_HEIGHT = 16#MAX_HEIGHT-6-PANEL_HEIGHT-1 -3 #7-PANEL_HEIGHT
 
 ChipCutterBox = doc.addObject("Part::Box", "ChipCutterBox")
 ChipCutterBox.Length = CHIP_LENGTH+2
-ChipCutterBox.Width = CHIP_WIDTH+2
+ChipCutterBox.Width = CHIP_WIDTH+4
 ChipCutterBox.Height = CHIP_HEIGHT#+1
-ChipCutterBox.Placement = App.Placement(App.Vector(-(CHIP_LENGTH+2)/2,-(CHIP_WIDTH+2)/2,LIPO_HEIGHT + 3 - PLATE_THICKNESS ),App.Rotation(App.Vector(0,0,1),0)) 
+ChipCutterBox.Placement = App.Placement(App.Vector(-(CHIP_LENGTH+2)/2,-(CHIP_WIDTH+4)/2,LIPO_HEIGHT + 3 - PLATE_THICKNESS ),App.Rotation(App.Vector(0,0,1),0)) 
 
 cutchipbox = doc.addObject("Part::Cut","cutchipbox")
 cutchipbox.Base = sodaqbox1
@@ -365,7 +487,7 @@ doc.removeObject('sodaqbox2')
 doc.recompute()
 
 
-
+## create screws for top box
 
 M4_THREAD_DIAM = 3.6
 SIDE_OFFSET=15
@@ -456,7 +578,58 @@ sodaqbox7 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
 doc.removeObject(cut.Label)
 doc.removeObject(sodaqbox6.Label)
 
-### END OF SCREWS INTO SODAQ BASE
+
+doc.removeObject(ScrewCut1.Label)
+doc.removeObject(ScrewCut2.Label)
+doc.removeObject(ScrewCut3.Label)
+doc.removeObject(ScrewCut4.Label)
+
+
+### END OF SCREWS INTO SODAQ CASE
+
+
+# build screws for lipo box
+
+
+
+HEX_NUT_DIAM = 7.0
+SIDE_OFFSET=15
+FRONT_OFFSET=-3.5
+ScrewCut1 = doc.addObject("Part::Prism","ScrewCut1")
+ScrewCut1.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut1.Circumradius = HEX_NUT_DIAM/2
+ScrewCut1.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,-slt/2 -FRONT_OFFSET ,-50),App.Rotation(App.Vector(0,1,0),0)) 
+
+
+
+SIDE_OFFSET=15
+FRONT_OFFSET=-3.5
+ScrewCut2 = doc.addObject("Part::Prism","ScrewCut2")
+ScrewCut2.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut2.Circumradius = HEX_NUT_DIAM/2
+ScrewCut2.Placement = App.Placement(App.Vector(+swt/2-SIDE_OFFSET,-slt/2 -FRONT_OFFSET ,-50),App.Rotation(App.Vector(0,1,0),0)) 
+
+
+SIDE_OFFSET=15
+FRONT_OFFSET=-3.5
+ScrewCut3 = doc.addObject("Part::Prism","ScrewCut3")
+ScrewCut3.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut3.Circumradius = HEX_NUT_DIAM/2
+ScrewCut3.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,slt/2 +FRONT_OFFSET ,-50),App.Rotation(App.Vector(0,1,0),0)) 
+
+
+
+SIDE_OFFSET=15
+FRONT_OFFSET=-3.5
+ScrewCut4 = doc.addObject("Part::Prism","ScrewCut4")
+ScrewCut4.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut4.Circumradius = HEX_NUT_DIAM/2
+ScrewCut4.Placement = App.Placement(App.Vector(+swt/2-SIDE_OFFSET,slt/2 +FRONT_OFFSET ,-50),App.Rotation(App.Vector(0,1,0),0)) 
+
+
+
+
+
 
 
 ### START OF SCREWS INTO LIPO BASE
@@ -517,6 +690,9 @@ doc.removeObject(ScrewCut1.Label)
 doc.removeObject(ScrewCut2.Label)
 doc.removeObject(ScrewCut3.Label)
 doc.removeObject(ScrewCut4.Label)
+
+
+### SCREWS FOR SODAQ CASE
 
 
 SCREW_HEAD_HEIGHT = 4
@@ -616,7 +792,7 @@ doc.removeObject(ScrewCut3.Label)
 doc.removeObject(ScrewCut4.Label)
 
 
-### END OF SCREWS INTO SODAQ BASE
+### END OF SCREWS INTO SODAQ CASE
 
 
 CHIPBOX_MIN = LIPO_HEIGHT + 3 - PLATE_THICKNESS 
@@ -826,6 +1002,13 @@ j.purgeTouched()
 
 topcase=doc.addObject("Part::Feature","topcase")
 topcase.Shape=Part.Solid(Part.Shell(doc.TopJoin.Shape.Faces))
+
+#doc.getObject("topcase").Transparency = 50
+FreeCADGui.getDocument("Unnamed").getObject("topcase").Transparency = 40
+FreeCADGui.getDocument("Unnamed").getObject("FullBase").Transparency = 40
+
+
+
 #del __s__, __o__
 doc.removeObject("TopJoin")
 doc.removeObject(sodaqbox1.Label)
