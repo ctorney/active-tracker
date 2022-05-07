@@ -1,3 +1,5 @@
+
+
 # -*- coding: utf-8 -*-
 import FreeCAD as App
 import Part
@@ -146,7 +148,7 @@ doc.removeObject('baseplate1')
 
 RIVET_HEAD_DIAM = 10
 SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+FRONT_OFFSET=-2.0
 ScrewCut1 = doc.addObject("Part::Cylinder","ScrewCut1")
 ScrewCut1.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
 ScrewCut1.Radius = RIVET_HEAD_DIAM/2
@@ -154,24 +156,24 @@ ScrewCut1.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,-slt/2 -FRONT_
 
 
 
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut2 = doc.addObject("Part::Cylinder","ScrewCut2")
 ScrewCut2.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
 ScrewCut2.Radius = RIVET_HEAD_DIAM/2
 ScrewCut2.Placement = App.Placement(App.Vector(+swt/2-SIDE_OFFSET,-slt/2 -FRONT_OFFSET ,-50),App.Rotation(App.Vector(0,1,0),0)) 
 
 
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut3 = doc.addObject("Part::Cylinder","ScrewCut3")
 ScrewCut3.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
 ScrewCut3.Radius = RIVET_HEAD_DIAM/2
 ScrewCut3.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,slt/2 +FRONT_OFFSET ,-50),App.Rotation(App.Vector(0,1,0),0)) 
 
 
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut4 = doc.addObject("Part::Cylinder","ScrewCut4")
 ScrewCut4.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
 ScrewCut4.Radius = RIVET_HEAD_DIAM/2
@@ -490,8 +492,8 @@ doc.recompute()
 ## create screws for top box
 
 M4_THREAD_DIAM = 3.6
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut1 = doc.addObject("Part::Cylinder","ScrewCut1")
 ScrewCut1.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
 ScrewCut1.Radius = M4_THREAD_DIAM/2
@@ -500,8 +502,8 @@ ScrewCut1.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,-slt/2 -FRONT_
 
 
 M4_THREAD_DIAM = 3.6
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut2 = doc.addObject("Part::Cylinder","ScrewCut2")
 ScrewCut2.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
 ScrewCut2.Radius = M4_THREAD_DIAM/2
@@ -509,8 +511,8 @@ ScrewCut2.Placement = App.Placement(App.Vector(+swt/2-SIDE_OFFSET,-slt/2 -FRONT_
 
 
 M4_THREAD_DIAM = 3.6
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut3 = doc.addObject("Part::Cylinder","ScrewCut3")
 ScrewCut3.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
 ScrewCut3.Radius = M4_THREAD_DIAM/2
@@ -519,8 +521,8 @@ ScrewCut3.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,slt/2 +FRONT_O
 
 
 M4_THREAD_DIAM = 3.6
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut4 = doc.addObject("Part::Cylinder","ScrewCut4")
 ScrewCut4.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
 ScrewCut4.Radius = M4_THREAD_DIAM/2
@@ -593,8 +595,8 @@ doc.removeObject(ScrewCut4.Label)
 
 
 HEX_NUT_DIAM = 7.0
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut1 = doc.addObject("Part::Prism","ScrewCut1")
 ScrewCut1.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
 ScrewCut1.Circumradius = HEX_NUT_DIAM/2
@@ -602,16 +604,16 @@ ScrewCut1.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,-slt/2 -FRONT_
 
 
 
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut2 = doc.addObject("Part::Prism","ScrewCut2")
 ScrewCut2.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
 ScrewCut2.Circumradius = HEX_NUT_DIAM/2
 ScrewCut2.Placement = App.Placement(App.Vector(+swt/2-SIDE_OFFSET,-slt/2 -FRONT_OFFSET ,-50),App.Rotation(App.Vector(0,1,0),0)) 
 
 
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut3 = doc.addObject("Part::Prism","ScrewCut3")
 ScrewCut3.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
 ScrewCut3.Circumradius = HEX_NUT_DIAM/2
@@ -619,8 +621,8 @@ ScrewCut3.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,slt/2 +FRONT_O
 
 
 
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut4 = doc.addObject("Part::Prism","ScrewCut4")
 ScrewCut4.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
 ScrewCut4.Circumradius = HEX_NUT_DIAM/2
@@ -699,8 +701,8 @@ SCREW_HEAD_HEIGHT = 4
 SCREW_HEAD_DIAM = 7
 
 
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut1 = doc.addObject("Part::Cylinder","ScrewCut1")
 ScrewCut1.Height = SCREW_HEAD_HEIGHT
 ScrewCut1.Radius = SCREW_HEAD_DIAM/2
@@ -709,8 +711,8 @@ ScrewCut1.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,-slt/2 -FRONT_
 
 
 
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut2 = doc.addObject("Part::Cylinder","ScrewCut2")
 ScrewCut2.Height = SCREW_HEAD_HEIGHT
 ScrewCut2.Radius = SCREW_HEAD_DIAM/2
@@ -718,8 +720,8 @@ ScrewCut2.Placement = App.Placement(App.Vector(+swt/2-SIDE_OFFSET,-slt/2 -FRONT_
 
 
 
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut3 = doc.addObject("Part::Cylinder","ScrewCut3")
 ScrewCut3.Height = SCREW_HEAD_HEIGHT
 ScrewCut3.Radius = SCREW_HEAD_DIAM/2
@@ -728,8 +730,8 @@ ScrewCut3.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,slt/2 +FRONT_O
 
 
 
-SIDE_OFFSET=15
-FRONT_OFFSET=-3.5
+
+
 ScrewCut4 = doc.addObject("Part::Cylinder","ScrewCut4")
 ScrewCut4.Height = SCREW_HEAD_HEIGHT
 ScrewCut4.Radius = SCREW_HEAD_DIAM/2
