@@ -8,7 +8,7 @@ import BOPTools.JoinFeatures
 
 import Mesh
 
-MAX_HEIGHT = 26
+MAX_HEIGHT = 25
 
 # dimensions for plate that attaches to the collar
 PLATE_THICKNESS = 10
@@ -29,7 +29,7 @@ bwt = 60 # battery width top
 
 PANEL_WIDTH = 70
 PANEL_LENGTH = 55
-PANEL_HEIGHT = 3
+PANEL_HEIGHT = 2
 slb = blt # sodaq length bottom = battery length top
 swb = 60 # sodaq width bottom
 slt = PANEL_WIDTH + 24
@@ -456,7 +456,7 @@ sodaqbox2 .Label="sodaqbox2"
 sodaqbox2 .Shape=Part.Solid(Part.Shell(cutchipbox.Shape.Faces))
 
 doc.removeObject('cutchipbox')
-doc.removeObject('ChipCutterBox')
+#doc.removeObject('ChipCutterBox')
 doc.removeObject('sodaqbox1')
 
 
