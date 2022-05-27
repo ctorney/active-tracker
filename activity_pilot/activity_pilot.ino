@@ -35,8 +35,8 @@ void get_accel_data()
 
   // reset the segment counter
   if (segment_counter==SEG_LENGTH) segment_counter=0;
-  predict_data[segment_counter*N_CHANNELS] = float(euler_data.r) / 16.00;
-  predict_data[segment_counter*N_CHANNELS + 1] = float(euler_data.p) / 16.00;
+  predict_data[segment_counter*N_CHANNELS] = float(euler_data.p) / 16.00;
+  predict_data[segment_counter*N_CHANNELS + 1] = float(euler_data.r) / 16.00;
   predict_data[segment_counter*N_CHANNELS + 2] = float(accel_data.x);
   predict_data[segment_counter*N_CHANNELS + 3] = float(accel_data.y);
   predict_data[segment_counter*N_CHANNELS + 4] = float(accel_data.z);
@@ -80,13 +80,15 @@ void loop()
     if (segment_counter==SEG_LENGTH)
     {
       tf.predict(predict_data, prediction);
-      Serial.print(prediction[0]);  
-      Serial.print(" ");  
-      Serial.print(prediction[1]);  
-      Serial.print(" ");  
-      Serial.print(prediction[2]);  
-      Serial.print(" ");  
-      Serial.println(prediction[3]);  
+      int activity = tf.probaToClass(prediction);
+      if (activity == 0) Serial.println("Walking");
+      if (activity == 1) Serial.println("Standing");
+      if (activity == 2) Serial.println("Sitting");
+      if (activity == 3) Serial.println("Lying");
+      //Serial.println(activity);
+      //Serial.print("Predicted class is: ");
+      //Serial.println(tf.probaToClass(prediction));
+      
     }
   }
 }
