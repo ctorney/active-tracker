@@ -9,4 +9,5 @@ To do list
 - [ ] serial flash https://forum.arduino.cc/t/solved-mkr-1310-on-board-2mb-spi-flash-problem/633461/12
 - [ ] RTC and Watchdog https://github.com/javos65/WDTZero/issues/13
 - [ ] tflite classifier
+- [ ] complementary filter for imu data
 
