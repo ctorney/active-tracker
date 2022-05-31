@@ -15,6 +15,11 @@
 Eloquent::TinyML::TensorFlow::TensorFlow<N_INPUTS, N_OUTPUTS, TENSOR_ARENA_SIZE> tf;
 
 
+const byte PIN_FLASH_CS = 32; // Change this to match the Chip Select pin on your board
+#include <SPI.h>
+#include <SparkFun_SPI_SerialFlash.h>
+SFE_SPI_FLASH myFlash;
+
 
 #include "imu.h"
 
@@ -42,6 +47,29 @@ float predict_data[N_INPUTS];
 float prediction[N_OUTPUTS];
 
 
+#include <RTCZero.h>
+
+/* Create an rtc object */
+RTCZero rtc;
+
+#include "WDTZero.h"
+
+WDTZero WatchDogTimer; 
+
+
+
+
+volatile bool GPS_DONE = true;
+volatile bool IMU_DONE = true;
+volatile bool LORA_DONE = true;
+
+
+bool GPS_SLEEP = true;
+unsigned int imu_counter = 0;
+
+unsigned long gps_timer = 0;
+unsigned long gps_time_out = 1000*60*10;
+
 void setup() 
 {
     Serial.begin(115200);
@@ -63,8 +91,8 @@ void setup()
     
   }
 
-  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
-
+  //GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
+  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_100_MILLIHERTZ);
   GPS.sendCommand(PMTK_API_SET_FIX_CTL_100_MILLIHERTZ);
   
@@ -72,7 +100,7 @@ void setup()
    if (!initialiseIMU())  {Serial.println("ERROR: ICM ");}
    Serial.println("initialised...");
 
-if (!modem.begin(EU868)) {
+  if (!modem.begin(EU868)) {
     Serial.println("Failed to start module");
     while (1) {}
   };
@@ -81,21 +109,55 @@ if (!modem.begin(EU868)) {
   Serial.print("Your device EUI is: ");
   Serial.println(modem.deviceEUI());
   delay(1);
+  rtc.begin(); // initialize RTC
 
+  rtc.setAlarmTime(0, 15, 0);
+  rtc.enableAlarm(rtc.MATCH_MMSS);
+  
+  rtc.attachInterrupt(quarter_hour_alarm);
+
+  Serial.print("\nWDTZero-Demo : Setup Soft Watchdog at 32S interval"); 
+ WatchDogTimer.attachShutdown(wd_shutdown);
+ WatchDogTimer.setup(WDT_SOFTCYCLE16M);  // initialize WDT-softcounter refesh cycle on 16m interval
+}
+
+void wd_shutdown()
+{
+  Serial.print("\nshutting down ...");
+}
+
+
+void quarter_hour_alarm()
+{
+  WatchDogTimer.clear();
+  if (rtc.getMinutes()==0)
+  {
+    GPS_DONE = false;
+    IMU_DONE = false;
+    LORA_DONE = false;
+  }
+  Serial.println("Alarm Match!");
 }
 
 void loop() 
 {
-  
-if (GPS.newNMEAreceived()) {
-    // a tricky thing here is if we print the NMEA sentence, or data
-    // we end up not listening and catching other sentences!
-    // so be very wary if using OUTPUT_ALLDATA and trying to print out data
-    Serial.println(GPS.lastNMEA()); // this also sets the newNMEAreceived() flag to false
-    if (!GPS.parse(GPS.lastNMEA())) // this also sets the newNMEAreceived() flag to false
-      return; // we can fail to parse a sentence in which case we should just wait for another
-  }
+    if (GPS_DONE && IMU_DONE && LORA_DONE) rtc.standby();
 
+    if (!GPS_DONE)
+    {
+      if (GPS_SLEEP)
+      {
+        // wake up the GPS
+        gps_timer = millis();
+        GPS.wakeup();
+      }
+      char c = GPS.read();
+      if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
+      
+    }
+    
+  //return;
+ 
   // approximately every 2 seconds or so, print out the current stats
   if (millis() - timer > 2000) {
     timer = millis(); // reset the timer
