@@ -44,7 +44,7 @@ MKR_WIDTH =  67.7 + 1
 mkr1310 = doc.addObject("Part::Box", "Cube")
 mkr1310.Length = MKR_LENGTH
 mkr1310.Width = MKR_WIDTH
-mkr1310.Height = MKR_HEIGHT
+mkr1310.Height = MKR_HEIGHT+3
 mkr1310.Placement = App.Placement(App.Vector(-(MKR_LENGTH)/2,-(MKR_WIDTH)/2,0 ),App.Rotation(App.Vector(0,0,1),0)) 
 
 
@@ -71,7 +71,7 @@ doc.removeObject(mkr1310.Label)
 mkr1310 = tmpbox
 
 
-SCREW_HEAD_DIAM = 2.4 -0.5
+SCREW_HEAD_DIAM = 2.4 -1
 
 lengths = [-10.25,10.25,-10.25,10.25]
 widths = [-25.40,-25.40,31.60,31.60]
@@ -80,7 +80,7 @@ for i in range(4):
 
 	ScrewCut = doc.addObject("Part::Cylinder","ScrewCut")
 	ScrewCut.Height = 10
-	if i == 3:
+	if i == 2:
 		ScrewCut.Radius = SCREW_HEAD_DIAM/2  - 0.5
 	else:
 		ScrewCut.Radius = SCREW_HEAD_DIAM/2
@@ -152,7 +152,7 @@ doc.recompute()
 ###########################################################################
 
 
-GPS_HEIGHT = 1.6 + 10
+GPS_HEIGHT = 1.6 #+ 10
 GPS_LENGTH = 25.4 #+ 1
 GPS_WIDTH =  25.4 #+ 1
 
@@ -177,7 +177,7 @@ del __fillets__
 doc.recompute()
 
 
-tmpbox = App.ActiveDocument.addObject("Part::Feature","gps")
+tmpbox = App.ActiveDocument.addObject("Part::Feature","gpstmp")
 tmpbox.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
 
 doc.removeObject('Fillet')
@@ -186,13 +186,16 @@ doc.removeObject(gps.Label)
 gps = tmpbox
 
 
-SCREW_HEAD_DIAM = 2.4 - 0.5
+SCREW_HEAD_DIAM = 2.4 - 1.0
 
 lengths = [-10.16,10.16,-10.16,10.16]
 widths = [-10.16,-10.16,10.16,10.16]
 
-for i in range(4):
-	if i !=3: continue
+for i in range(0):
+	if i ==1: continue
+	if i ==0: continue
+	if i ==2: continue
+
 	ScrewCut = doc.addObject("Part::Cylinder","ScrewCut")
 	ScrewCut.Height = 20
 	ScrewCut.Radius = SCREW_HEAD_DIAM/2
@@ -207,7 +210,7 @@ for i in range(4):
 	doc.Cut.Tool = ScrewCut
 	doc.recompute()
 	
-	tmpbox =doc.addObject("Part::Feature","gps")
+	tmpbox =doc.addObject("Part::Feature","gps"+str(i))
 
 	tmpbox .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
 	
@@ -218,8 +221,49 @@ for i in range(4):
 	gps = tmpbox
 
 
+ScrewCut = doc.addObject("Part::Cylinder","ScrewCut")
+ScrewCut.Height = 20
+ScrewCut.Radius = 2.5/2
+i = 3
+ScrewCut.Placement = App.Placement(App.Vector(lengths[i],widths[i] ,-10),App.Rotation(App.Vector(0,1,0),0)) 
 
-	
+
+
+fusion = doc.addObject("Part::MultiFuse","Fusion")
+doc.Fusion.Shapes = [doc.gpstmp,doc.ScrewCut]
+doc.recompute()
+
+gps =doc.addObject("Part::Feature","gps3")
+
+gps .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
+
+doc.removeObject(ScrewCut.Label)
+doc.removeObject("gpstmp")
+doc.removeObject("Fusion")
+
+doc.recompute()
+
+
+ScrewCut = doc.addObject("Part::Cylinder","ScrewCut")
+ScrewCut.Height = 20
+ScrewCut.Radius = 2.6/2
+i = 1
+ScrewCut.Placement = App.Placement(App.Vector(lengths[i],widths[i] ,-10),App.Rotation(App.Vector(0,1,0),0)) 
+
+
+
+fusion = doc.addObject("Part::MultiFuse","Fusion")
+doc.Fusion.Shapes = [doc.gps3,doc.ScrewCut]
+doc.recompute()
+
+gps =doc.addObject("Part::Feature","gps")
+
+gps .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
+
+doc.removeObject(ScrewCut.Label)
+doc.removeObject("gps3")
+doc.removeObject("Fusion")
+
 doc.recompute()
 
 
@@ -235,7 +279,7 @@ doc.recompute()
 ###########################################################################
 
 
-IMU_HEIGHT = 1.6
+IMU_HEIGHT = 1.6+1.4
 IMU_LENGTH = 17.78 + 1
 IMU_WIDTH =  25.4 + 1
 
@@ -269,7 +313,7 @@ doc.removeObject(imu.Label)
 imu = tmpbox
 
 
-SCREW_HEAD_DIAM = 2.4 -0.5
+SCREW_HEAD_DIAM = 2.4 -1
 
 
 lengths = [-6.35,-6.35,6.35,6.35]
@@ -277,7 +321,7 @@ widths = [-10.16,10.16,-10.16,10.16]
 
 for i in range(4):
 
-	if i == 2: continue
+	if i == 0: continue
 	ScrewCut = doc.addObject("Part::Cylinder","ScrewCut")
 	ScrewCut.Height = 10
 	ScrewCut.Radius = SCREW_HEAD_DIAM/2
@@ -321,7 +365,7 @@ doc.recompute()
 
 
 SCREW_HEAD_HEIGHT = 6 +3
-SCREW_HEAD_DIAM = 1.8
+SCREW_HEAD_DIAM = 2.5#1.8
 
 RIDER_HOLE_WIDTH = 63
 RIDER_HOLE_LENGTH = 44.5
@@ -333,18 +377,21 @@ c3 =doc.addObject("Part::Feature","c3")
 c4 =doc.addObject("Part::Feature","c4")
 c5 =doc.addObject("Part::Feature","c5")
 objlist = [c1,c2,c3,c4,c5]
-lengths = [-RIDER_HOLE_LENGTH/2,-RIDER_HOLE_LENGTH/2,RIDER_HOLE_LENGTH/2,RIDER_HOLE_LENGTH/2,RIDER_HOLE_LENGTH/2-15.5]
+lengths = [-RIDER_HOLE_LENGTH/2,-RIDER_HOLE_LENGTH/2,RIDER_HOLE_LENGTH/2,RIDER_HOLE_LENGTH/2,RIDER_HOLE_LENGTH/2]
 widths = [-RIDER_HOLE_WIDTH/2,RIDER_HOLE_WIDTH/2,-RIDER_HOLE_WIDTH/2,RIDER_HOLE_WIDTH/2,RIDER_HOLE_WIDTH/2]
-for i in range(5):
+for i in range(4):
 
 	ScrewCut1 = doc.addObject("Part::Cylinder","ScrewCut1")
-	ScrewCut1.Height = SCREW_HEAD_HEIGHT
+	ScrewCut1.Height = SCREW_HEAD_HEIGHT + 10
 	ScrewCut1.Radius = SCREW_HEAD_DIAM/2
 	ScrewCut1.Placement = App.Placement(App.Vector(lengths[i],widths[i] ,0),App.Rotation(App.Vector(0,1,0),0)) 
 	
 	
 	outer = doc.addObject("Part::Cylinder","Cylinder2")
-	outer.Height = SCREW_HEAD_HEIGHT
+	if i == 0:
+		outer.Height = SCREW_HEAD_HEIGHT + 6
+	else:
+		outer.Height = SCREW_HEAD_HEIGHT
 	outer.Radius = SCREW_HEAD_DIAM
 	outer.Placement = App.Placement(App.Vector(lengths[i],widths[i] ,0),App.Rotation(App.Vector(0,1,0),0)) 
 	
@@ -376,7 +423,7 @@ chipholder = doc.addObject("Part::Box", "chipholder")
 chipholder.Length = HOLDER_LENGTH
 chipholder.Width = HOLDER_WIDTH
 chipholder.Height = HOLDER_HEIGHT
-chipholder.Placement = App.Placement(App.Vector(-(HOLDER_LENGTH)/2,-(HOLDER_WIDTH)/2,SCREW_HEAD_HEIGHT-HOLDER_HEIGHT ),App.Rotation(App.Vector(0,0,1),0)) 
+chipholder.Placement = App.Placement(App.Vector(-(HOLDER_LENGTH)/2,-(HOLDER_WIDTH)/2,SCREW_HEAD_HEIGHT-3 ),App.Rotation(App.Vector(0,0,1),0)) 
 
 
 
@@ -405,7 +452,7 @@ chipholder = tmpbox
 for i in range(5):
 
 	ScrewCut1 = doc.addObject("Part::Cylinder","ScrewCut1")
-	ScrewCut1.Height = 10
+	ScrewCut1.Height = 15
 	ScrewCut1.Radius = SCREW_HEAD_DIAM/2
 	ScrewCut1.Placement = App.Placement(App.Vector(lengths[i],widths[i] ,0),App.Rotation(App.Vector(0,1,0),0)) 
 	
@@ -454,28 +501,29 @@ joinerbox2.Placement = App.Placement(App.Vector((HOLDER_LENGTH)/2 - JOINER2_LENG
 
 
 
-IMU_HOLDER_HEIGHT = 6
-IMU_HOLDER_LENGTH = 10
-IMU_HOLDER_WIDTH =  20
+IMU_HOLDER_HEIGHT = 6+2
+IMU_HOLDER_LENGTH = 17
+IMU_HOLDER_WIDTH =  24
 imuholder = doc.addObject("Part::Box", "imuholder")
 imuholder.Length = IMU_HOLDER_LENGTH
 imuholder.Width = IMU_HOLDER_WIDTH
 imuholder.Height = IMU_HOLDER_HEIGHT
-imuholder.Placement = App.Placement(App.Vector(14.1,13.3,SCREW_HEAD_HEIGHT ),App.Rotation(App.Vector(0,0,1),0)) 
+imuholder.Placement = App.Placement(App.Vector(-24.1,-33.3,SCREW_HEAD_HEIGHT ),App.Rotation(App.Vector(0,0,1),0)) 
 
 
 
 fillet = doc.addObject("Part::Fillet","Fillet")
 fillet.Base = imuholder
 __fillets__ = []
-__fillets__.append((7,2.00,2.00))
+#__fillets__.append((7,2.00,2.00))
 #__fillets__.append((3,2.00,2.00))
 #__fillets__.append((5,2.00,2.00))
-#__fillets__.append((7,2.00,2.00))
+__fillets__.append((1,2.00,2.00))
 fillet.Edges = __fillets__
 del __fillets__
 
 doc.recompute()
+
 
 
 tmpbox = App.ActiveDocument.addObject("Part::Feature","tmpbox")
@@ -488,14 +536,14 @@ imuholder = tmpbox
 
 
 
-IMU_HOLDER_HEIGHT = 6+0.5
-IMU_HOLDER_LENGTH = 10
-IMU_HOLDER_WIDTH =  20
+IMU_HOLDER_HEIGHT = 6+0.5+3
+IMU_HOLDER_LENGTH = 17
+IMU_HOLDER_WIDTH =  24
 cutimuholder = doc.addObject("Part::Box", "cutimuholder")
 cutimuholder.Length = IMU_HOLDER_LENGTH
 cutimuholder.Width = IMU_HOLDER_WIDTH
 cutimuholder.Height = IMU_HOLDER_HEIGHT
-cutimuholder.Placement = App.Placement(App.Vector(14.1-3,13.3-3,SCREW_HEAD_HEIGHT-0.5 ),App.Rotation(App.Vector(0,0,1),0)) 
+cutimuholder.Placement = App.Placement(App.Vector(-24.1+3,-33.3+3,SCREW_HEAD_HEIGHT-0.5 ),App.Rotation(App.Vector(0,0,1),00)) 
 
 
 
@@ -542,7 +590,7 @@ imuholder = tmpbox
 ScrewCut1 = doc.addObject("Part::Cylinder","ScrewCut1")
 ScrewCut1.Height = 100
 ScrewCut1.Radius = SCREW_HEAD_DIAM/2
-i = 3
+i = 0
 ScrewCut1.Placement = App.Placement(App.Vector(lengths[i],widths[i] ,0),App.Rotation(App.Vector(0,1,0),0)) 
 	
 
@@ -569,13 +617,27 @@ imuholder = tmpbox
 
 
 
+OUT_HEAD_DIAM = 2.4 -1
+
+lengths = [-10.25,10.25,-10.25,10.25]
+widths = [25.40,25.40,-31.60,-31.60]
+
+for i in range(3):
+
+
+	ScrewCut = doc.addObject("Part::Cylinder","ScrewCut"+str(i))
+	ScrewCut.Height = 3
+
+	ScrewCut.Radius = OUT_HEAD_DIAM/2
+	ScrewCut.Placement = App.Placement(App.Vector(lengths[i]+12.0,widths[i]+0.10 ,8),App.Rotation(App.Vector(0,0,1),0)) 
+
 
 
 
 
 
 fusion = doc.addObject("Part::MultiFuse","Fusion")
-doc.Fusion.Shapes = [doc.joinerbox,doc.joinerbox2,doc.c5,doc.c2,doc.c4,doc.chipholder,doc.c1,doc.imuholder2]
+doc.Fusion.Shapes = [doc.joinerbox,doc.joinerbox2,doc.c2,doc.c4,doc.c3,doc.chipholder,doc.c1,doc.imuholder2,doc.ScrewCut0,doc.ScrewCut1,doc.ScrewCut2]
 doc.recompute()
 
 baseholder =doc.addObject("Part::Feature","baseholder")
@@ -591,11 +653,18 @@ doc.removeObject(chipholder.Label)
 doc.removeObject(joinerbox.Label)
 doc.removeObject(joinerbox2.Label)
 doc.removeObject(imuholder.Label)
+doc.removeObject(doc.ScrewCut0.Label)
+doc.removeObject(doc.ScrewCut1.Label)
+doc.removeObject(doc.ScrewCut2.Label)
+
+
+
+	
 
 
 
 
-mkr1310final.Placement = App.Placement(App.Vector(-3.5,-0.10,8.0 ),App.Rotation(App.Vector(0,0,1),0)) 
+mkr1310final.Placement = App.Placement(App.Vector(12.0,0.10,8.0 ),App.Rotation(App.Vector(0,0,1),180)) 
 
 
 doc.recompute()
@@ -615,7 +684,7 @@ doc.recompute()
 baseholder = tmpbox
 
 
-gps.Placement = App.Placement(App.Vector(12.1,-21.350,6 ),App.Rotation(App.Vector(0,0,1),0)) 
+gps.Placement = App.Placement(App.Vector(-13.70,12.350,9.6 ),App.Rotation(App.Vector(0,0,1),0)) 
 
 
 cut = doc.addObject("Part::Cut","Cut")
@@ -632,7 +701,7 @@ doc.removeObject(baseholder.Label)
 doc.recompute()
 baseholder = tmpbox
 
-imu.Placement = App.Placement(App.Vector(12.1,25.150,14 ),App.Rotation(App.Vector(0,0,1),90)) 
+imu.Placement = App.Placement(App.Vector(-15.9,-21.35,14 ),App.Rotation(App.Vector(0,0,1),0)) 
 
 
 
@@ -655,50 +724,4 @@ doc.removeObject(mkr1310final.Label)
 doc.removeObject(gps.Label)
 doc.removeObject(imu.Label)
 doc.recompute()
-
-
-#mkrshape = doc.getObject("mkrshape2")
-
-#xoffset = [-0.5,-0.5,0.5,0.5]
-#yoffset = [-0.5,0.5,-0.5,0.5]
-
-#for i in range(4):
-	
-	
-#	doc.getObject("mkrshape2").Placement = App.Placement(App.Vector(xoffset[i],yoffset[i],0),App.Rotation(App.Vector(0,0,1),0))
-
-
-
-#	cut = doc.addObject("Part::Cut","Cut")
-#	doc.Cut.Base = baseholder
-#	doc.Cut.Tool = doc.getObject("mkrshape2")
-#	doc.recompute()
-
-#	tmpbox =doc.addObject("Part::Feature","baseholder2")
-
-#	tmpbox .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
-
-#	doc.removeObject(cut.Label)
-#	doc.removeObject(baseholder.Label)
-#	doc.recompute()
-#	baseholder = tmpbox
-
-	
-#doc.getObject("mkrshape2").Placement = App.Placement(App.Vector(0.5,0.5,0),App.Rotation(App.Vector(0,0,1),0))
-
-
-
-#cut = doc.addObject("Part::Cut","Cut")
-#doc.Cut.Base = baseholder
-#doc.Cut.Tool = doc.getObject("mkrshape2")
-#doc.recompute()
-
-#tmpbox =doc.addObject("Part::Feature","baseholder2")
-
-#tmpbox .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
-
-#doc.removeObject(cut.Label)
-#doc.removeObject(baseholder.Label)
-#doc.recompute()
-#baseholder = tmpbox
 
