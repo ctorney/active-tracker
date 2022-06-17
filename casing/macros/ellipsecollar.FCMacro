@@ -1,0 +1,1698 @@
+from FreeCAD import Base
+import FreeCAD as App
+import BOPTools.JoinFeatures
+import Part
+import Part,PartGui
+import Mesh
+import sys
+
+MAX_HEIGHT = 30
+
+
+COLLAR_MAJOR_RADIUS = 350
+COLLAR_MINOR_RADIUS = 117
+COLLAR_WIDTH = 50
+
+PLATE_THICKNESS = 10
+PLATE_LENGTH = 128
+
+
+LIPO_WIDTH = 60+2
+LIPO_LENGTH = 40
+LIPO_HEIGHT = 10 
+
+
+CHIP_WIDTH = 86
+CHIP_LENGTH = 52
+CHIP_HEIGHT = 22 
+
+
+SEAL_LENGTH = CHIP_LENGTH+3
+SEAL_WIDTH =  CHIP_WIDTH+5
+
+
+bwb = SEAL_WIDTH + 4+ 4   # battery length bottom
+blb = 50  # battery width bottom
+bwt = SEAL_WIDTH + 4+ 4  # battery length top
+blt = SEAL_LENGTH + 4 + 4 # battery width top
+
+
+PANEL_WIDTH = 70
+PANEL_LENGTH = 55
+PANEL_HEIGHT = 2
+slb = blt + 6 # sodaq length bottom = battery length top
+swb = bwt + 8 # sodaq width bottom
+slt = PANEL_LENGTH + 8 
+swt = PANEL_WIDTH + 12 # 24 +GROW
+
+
+doc = App.activeDocument()
+
+objs = doc.Objects
+for obj in objs:
+    name = obj.Name
+    doc.removeObject(name)
+
+## MAKE THE OUTER ELLIPSE FOR COLLAR
+outer_ellipse = doc.addObject("Part::Ellipse","outer_ellipse")
+outer_ellipse.MajorRadius=COLLAR_MAJOR_RADIUS
+outer_ellipse.MinorRadius=COLLAR_MINOR_RADIUS
+outer_ellipse.Placement=App.Placement(App.Vector(-COLLAR_WIDTH/2,0,-COLLAR_MAJOR_RADIUS),App.Rotation(App.Vector(0,1,0),90)) 
+outer_ellipse.Label='outer_ellipse'
+doc.recompute()
+
+f = doc.addObject('Part::Extrusion', 'Extrude')
+f.Base = outer_ellipse#.App.getDocument('Unnamed').getObject('Ellipse')
+f.DirMode = "Normal"
+f.LengthFwd = COLLAR_WIDTH
+f.Solid = True
+doc.recompute()
+
+#outer = doc.addObject('Part::Feature','Cylinder1').Shape=f.Shape
+
+outer = doc.addObject("Part::Feature","Cylinder1")
+outer.Label = "Cylinder1"
+outer.Shape=Part.Solid(Part.Shell(f.Shape.Faces))
+
+
+
+doc.removeObject(outer_ellipse.Name)
+doc.removeObject(f.Name)
+doc.recompute()
+
+## MAKE THE INNER ELLIPSE FOR COLLAR
+inner_ellipse = doc.addObject("Part::Ellipse","inner_ellipse")
+inner_ellipse.MajorRadius=COLLAR_MAJOR_RADIUS - PLATE_THICKNESS
+inner_ellipse.MinorRadius=COLLAR_MINOR_RADIUS - PLATE_THICKNESS
+inner_ellipse.Placement=App.Placement(App.Vector(-COLLAR_WIDTH/2-5,0,-COLLAR_MAJOR_RADIUS),App.Rotation(App.Vector(0,1,0),90)) 
+inner_ellipse.Label='inner_ellipse'
+doc.recompute()
+
+f = doc.addObject('Part::Extrusion', 'Extrude')
+f.Base = inner_ellipse#.App.getDocument('Unnamed').getObject('Ellipse')
+f.DirMode = "Normal"
+f.LengthFwd = COLLAR_WIDTH+10
+f.Solid = True
+doc.recompute()
+
+#inner = doc.addObject('Part::Feature','Cylinder2').Shape=f.Shape
+inner = doc.addObject("Part::Feature","Cylinder2")
+inner.Label = "Cylinder2"
+inner.Shape=Part.Solid(Part.Shell(f.Shape.Faces))
+doc.removeObject(inner_ellipse.Name)
+doc.removeObject(f.Name)
+doc.recompute()
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outer
+doc.Cut.Tool = inner
+doc.recompute()
+
+cutsolid =doc.addObject("Part::Feature","Cut_solid")
+cutsolid .Label="Cut (Solid)"
+cutsolid .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('Cylinder1')
+#doc.removeObject('Cylinder2')
+doc.recompute()
+
+box = doc.addObject("Part::Box", "CutterBox")
+
+cutheight = 100
+box.Length = PLATE_LENGTH
+box.Width = PLATE_LENGTH
+box.Height = cutheight
+box.Placement = App.Placement(App.Vector(-PLATE_LENGTH/2,-PLATE_LENGTH/2,-cutheight/2),App.Rotation(App.Vector(0,0,1),0)) 
+
+doc.recompute()
+
+
+common = doc.addObject("Part::MultiCommon","Common")
+doc.Common.Shapes = [box,cutsolid,]
+doc.recompute()
+
+baseplate0 = doc.addObject("Part::Feature","baseplate0")
+baseplate0.Label = "baseplate0"
+baseplate0.Shape=Part.Solid(Part.Shell(common.Shape.Faces))
+
+doc.removeObject('Common')
+doc.removeObject('CutterBox')
+doc.removeObject('Cut_solid')
+doc.recompute()
+
+
+#fillet = doc.addObject("Part::Fillet","Fillet")
+#fillet.Base = baseplate0
+#__fillets__ = []
+#__fillets__.append((1,8.00,8.00))
+#__fillets__.append((7,8.00,8.00))
+
+#fillet.Edges = __fillets__
+#del __fillets__
+
+#doc.recompute()
+
+#baseplate1 = App.ActiveDocument.addObject("Part::Feature","baseplate1")
+#baseplate1.Label = "baseplate1"
+#baseplate1.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+#doc.removeObject('Fillet')
+#doc.removeObject('baseplate0')
+
+
+
+#fillet = doc.addObject("Part::Fillet","Fillet")
+#fillet.Base = baseplate1
+#__fillets__ = []
+#__fillets__.append((1,2.00,2.00))
+#__fillets__.append((3,2.00,2.00))
+#__fillets__.append((4,2.00,2.00))
+#__fillets__.append((5,2.00,2.00))
+#__fillets__.append((6,2.00,2.00))
+#__fillets__.append((8,2.00,2.00))
+#__fillets__.append((9,2.00,2.00))
+#__fillets__.append((10,2.00,2.00))
+#__fillets__.append((13,2.00,2.00))
+#__fillets__.append((14,2.00,2.00))
+#__fillets__.append((15,2.00,2.00))
+#__fillets__.append((16,2.00,2.00))
+#fillet.Edges = __fillets__
+#del __fillets__
+#FreeCADGui.ActiveDocument.Common_solid.Visibility = False
+
+doc.recompute()
+
+
+baseplate2 = App.ActiveDocument.addObject("Part::Feature","baseplate2")
+baseplate2.Label = "baseplate2"
+baseplate2.Shape=Part.Solid(Part.Shell(baseplate0.Shape.Faces))
+
+#doc.removeObject('Fillet')
+doc.removeObject('baseplate0')
+
+
+## START OF BATTERY BOX
+
+BASE_FLOOR_HEIGHT = LIPO_HEIGHT + 3 - PLATE_THICKNESS
+
+lipobox = doc.addObject("Part::Wedge", "lipoBox")
+lipobox.Zmin = -bwb/2
+lipobox.Xmin = -blb/2
+lipobox.Z2min = -bwt/2
+lipobox.X2min = -blt/2
+lipobox.Zmax = bwb/2
+lipobox.Xmax = blb/2
+lipobox.Z2max = bwt/2
+lipobox.X2max = blt/2
+
+lipobox.Ymin = -32.88
+lipobox.Ymax = LIPO_HEIGHT + 3 - PLATE_THICKNESS  # 10 mm for lipo, 3 for tolerance and lower into the casing
+
+
+lipobox.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+LipoFloor = doc.addObject("Part::Box", "LipoFloor")
+LipoFloor.Length = LIPO_LENGTH+1
+LipoFloor.Width = LIPO_WIDTH+1
+LipoFloor.Height = 3 # THICKNESS OF BASE AT THINNEST POINT
+LipoFloor.Placement = App.Placement(App.Vector(-(LIPO_LENGTH+1)/2,-(LIPO_WIDTH+1)/2,-PLATE_THICKNESS),App.Rotation(App.Vector(0,0,1),0)) 
+
+
+LipoCutterBox = doc.addObject("Part::Box", "LipoCutterBox")
+LipoCutterBox.Length = LIPO_LENGTH
+LipoCutterBox.Width = LIPO_WIDTH
+LipoCutterBox.Height = LIPO_HEIGHT
+LipoCutterBox.Placement = App.Placement(App.Vector(-LIPO_LENGTH/2  ,-LIPO_WIDTH/2 - 1,3 - PLATE_THICKNESS ),App.Rotation(App.Vector(0,0,1),0)) 
+
+doc.recompute()
+cutlipobox = doc.addObject("Part::Cut","cutlipobox")
+cutlipobox.Base = lipobox
+cutlipobox.Tool = LipoCutterBox
+doc.recompute()
+
+
+
+lipo1 =doc.addObject("Part::Feature","lipo1")
+lipo1 .Label="Lipo Box"
+lipo1 .Shape=Part.Solid(Part.Shell(cutlipobox.Shape.Faces))
+
+doc.removeObject('cutlipobox')
+doc.removeObject('lipoBox')
+
+doc.recompute()
+cutlipobox = doc.addObject("Part::Cut","cutlipobox")
+cutlipobox.Base = doc.baseplate2
+cutlipobox.Tool = LipoCutterBox
+doc.recompute()
+
+baseplate21 =doc.addObject("Part::Feature","baseplate21")
+baseplate21 .Label="baseplate21"
+baseplate21 .Shape=Part.Solid(Part.Shell(cutlipobox.Shape.Faces))
+
+doc.removeObject('cutlipobox')
+doc.removeObject('baseplate2')
+
+doc.removeObject('LipoCutterBox')
+
+
+
+
+
+#fillet = doc.addObject("Part::Fillet","Fillet")
+#fillet.Base = lipo1
+#__fillets__ = []
+#__fillets__.append((2,2.00,2.00))
+#__fillets__.append((4,2.00,2.00))
+#__fillets__.append((9,2.00,2.00))
+#__fillets__.append((16,2.00,2.00))
+#fillet.Edges = __fillets__
+#del __fillets__
+
+#doc.recompute()
+
+
+#lipo2 = App.ActiveDocument.addObject("Part::Feature","lipo2")
+#lipo2.Label = "lipo2"
+#lipo2.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+#doc.removeObject('Fillet')
+#doc.removeObject('lipo1')
+
+
+j = BOPTools.JoinFeatures.makeConnect(name = 'LipoFloorJoin')
+j.Objects = [doc.lipo1, doc.LipoFloor]
+j.Proxy.execute(j)
+j.purgeTouched()
+for obj in j.ViewObject.Proxy.claimChildren():
+    obj.ViewObject.hide()
+
+lipocase=doc.addObject("Part::Feature","lipocase")
+lipocase.Label="lipocase"
+lipocase.Shape=Part.Solid(Part.Shell(doc.LipoFloorJoin.Shape.Faces))
+
+doc.removeObject("LipoFloorJoin")
+doc.removeObject("LipoFloor")
+doc.removeObject("lipo1")
+doc.recompute()
+
+
+j = BOPTools.JoinFeatures.makeEmbed(name = 'BaseEmbed')
+j.Base = lipocase
+j.Tool = doc.baseplate21
+j.Proxy.execute(j)
+j.purgeTouched()
+for obj in j.ViewObject.Proxy.claimChildren():
+    obj.ViewObject.hide()
+
+
+
+FullBase0=App.ActiveDocument.addObject("Part::Feature","FullBase0")
+FullBase0.Label="Embed (Solid)"
+FullBase0.Shape=Part.Solid(Part.Shell(doc.BaseEmbed.Shape.Faces))
+
+
+
+doc.removeObject("BaseEmbed")
+doc.removeObject("lipocase")
+doc.removeObject("baseplate21")
+#App.getDocument("Unnamed").recompute()
+FullBase=App.ActiveDocument.addObject("Part::Feature","FullBase")
+
+FullBase.Shape=doc.FullBase0.Shape.removeSplitter()
+
+#App.ActiveDocument.ActiveObject.Label=App.ActiveDocument.Embed_solid.Label
+#Gui.ActiveDocument.Embed_solid.hide()
+
+#Gui.ActiveDocument.ActiveObject.ShapeColor=Gui.ActiveDocument.Embed_solid.ShapeColor
+#Gui.ActiveDocument.ActiveObject.LineColor=Gui.ActiveDocument.Embed_solid.LineColor
+#Gui.ActiveDocument.ActiveObject.PointColor=Gui.ActiveDocument.Embed_solid.PointColor
+doc.recompute()
+doc.removeObject("FullBase0")
+doc.recompute()
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = FullBase
+doc.Cut.Tool = inner
+doc.recompute()
+
+FullBase2 =doc.addObject("Part::Feature","FullBase2")
+FullBase2 .Label="FullBase2"
+FullBase2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+doc.removeObject('Cut')
+doc.removeObject('FullBase')
+doc.removeObject('Cylinder2')
+doc.recompute()
+
+
+
+
+## OPENING FOR SEAL 
+
+
+CHIPBOX_MIN = LIPO_HEIGHT + 3 - PLATE_THICKNESS 
+
+
+INPUT_HEIGHT = 3.0
+INPUT_LENGTH = CHIP_LENGTH+3 -0.25
+INPUT_WIDTH =  CHIP_WIDTH+2+3 -0.25
+InputBox1 = doc.addObject("Part::Box", "InputBox1")
+InputBox1.Length = INPUT_LENGTH
+InputBox1.Width = INPUT_WIDTH
+InputBox1.Height = INPUT_HEIGHT
+InputBox1.Placement = App.Placement(App.Vector(-(INPUT_LENGTH)/2,-(INPUT_WIDTH)/2,CHIPBOX_MIN- INPUT_HEIGHT ),App.Rotation(App.Vector(0,0,1),0)) 
+
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = InputBox1
+__fillets__ = []
+__fillets__.append((1,2.00,2.00))
+__fillets__.append((3,2.00,2.00))
+__fillets__.append((5,2.00,2.00))
+__fillets__.append((7,2.00,2.00))
+fillet.Edges = __fillets__
+del __fillets__
+
+doc.recompute()
+
+
+InputBox1a = App.ActiveDocument.addObject("Part::Feature","InputBox1a")
+InputBox1a.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('InputBox1')
+
+
+doc.recompute()
+
+
+INPUT_HEIGHT = 3.0
+INPUT_LENGTH = CHIP_LENGTH+3+2.5 +0.25
+INPUT_WIDTH =  CHIP_WIDTH+2+3+2.5 +0.25
+InputBox2 = doc.addObject("Part::Box", "InputBox2")
+InputBox2.Length = INPUT_LENGTH
+InputBox2.Width = INPUT_WIDTH
+InputBox2.Height = INPUT_HEIGHT
+InputBox2.Placement = App.Placement(App.Vector(-(INPUT_LENGTH)/2,-(INPUT_WIDTH)/2,CHIPBOX_MIN- INPUT_HEIGHT ),App.Rotation(App.Vector(0,0,1),0)) 
+
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = InputBox2
+__fillets__ = []
+__fillets__.append((1,2.00,2.00))
+__fillets__.append((3,2.00,2.00))
+__fillets__.append((5,2.00,2.00))
+__fillets__.append((7,2.00,2.00))
+fillet.Edges = __fillets__
+del __fillets__
+
+doc.recompute()
+
+
+InputBox2a = App.ActiveDocument.addObject("Part::Feature","InputBox2a")
+InputBox2a.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('InputBox2')
+
+
+doc.recompute()
+
+
+inputboxcut = doc.addObject("Part::Cut","inputboxcut")
+inputboxcut.Base = InputBox2a
+inputboxcut.Tool = InputBox1a
+doc.recompute()
+
+
+
+inputbox =doc.addObject("Part::Feature","inputbox")
+inputbox.Label="inputbox"
+inputbox.Shape=Part.Solid(Part.Shell(inputboxcut.Shape.Faces))
+
+doc.removeObject('inputboxcut')
+doc.recompute()
+
+doc.removeObject('InputBox1a')
+doc.removeObject('InputBox2a')
+
+
+##### cut out the hole
+
+
+basecut = doc.addObject("Part::Cut","basecut")
+basecut.Base = FullBase2
+basecut.Tool = inputbox
+doc.recompute()
+
+
+
+FullBase =doc.addObject("Part::Feature","FullBase")
+FullBase.Shape=Part.Solid(Part.Shell(basecut.Shape.Faces))
+doc.recompute()
+
+doc.removeObject('basecut')
+doc.recompute()
+
+doc.removeObject('inputbox')
+doc.removeObject('FullBase2')
+
+########### SCREWS IN THE BASE
+
+
+
+SCREW_HEAD_HEIGHT = 12
+SCREW_HEAD_DIAM = 2.6
+
+RIDER_HOLE_WIDTH = 63
+RIDER_HOLE_LENGTH = 44.5
+
+
+
+ScrewCut1 = doc.addObject("Part::Cylinder","ScrewCut1")
+ScrewCut1.Height = SCREW_HEAD_HEIGHT
+ScrewCut1.Radius = SCREW_HEAD_DIAM/2
+ScrewCut1.Placement = App.Placement(App.Vector(-RIDER_HOLE_LENGTH/2,-RIDER_HOLE_WIDTH/2 ,BASE_FLOOR_HEIGHT-SCREW_HEAD_HEIGHT),App.Rotation(App.Vector(0,1,0),0)) 
+
+
+
+
+
+
+ScrewCut2 = doc.addObject("Part::Cylinder","ScrewCut2")
+ScrewCut2.Height = SCREW_HEAD_HEIGHT
+ScrewCut2.Radius = SCREW_HEAD_DIAM/2
+ScrewCut2.Placement = App.Placement(App.Vector(-RIDER_HOLE_LENGTH/2,RIDER_HOLE_WIDTH/2 ,BASE_FLOOR_HEIGHT-SCREW_HEAD_HEIGHT),App.Rotation(App.Vector(0,1,0),0)) 
+
+
+
+
+
+ScrewCut3 = doc.addObject("Part::Cylinder","ScrewCut3")
+ScrewCut3.Height = SCREW_HEAD_HEIGHT
+ScrewCut3.Radius = SCREW_HEAD_DIAM/2
+ScrewCut3.Placement = App.Placement(App.Vector(RIDER_HOLE_LENGTH/2,-RIDER_HOLE_WIDTH/2,BASE_FLOOR_HEIGHT-SCREW_HEAD_HEIGHT),App.Rotation(App.Vector(0,1,0),0)) 
+
+
+
+
+
+
+ScrewCut4 = doc.addObject("Part::Cylinder","ScrewCut4")
+ScrewCut4.Height = SCREW_HEAD_HEIGHT
+ScrewCut4.Radius = SCREW_HEAD_DIAM/2
+ScrewCut4.Placement = App.Placement(App.Vector(RIDER_HOLE_LENGTH/2,RIDER_HOLE_WIDTH/2,BASE_FLOOR_HEIGHT-SCREW_HEAD_HEIGHT),App.Rotation(App.Vector(0,1,0),0)) 
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = FullBase
+cut.Tool = ScrewCut1
+doc.recompute()
+FullBase1 =doc.addObject("Part::Feature","FullBase1")
+FullBase1 .Label="FullBase1"
+FullBase1 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(FullBase.Label)
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = FullBase1
+cut.Tool = ScrewCut2
+doc.recompute()
+
+FullBase =doc.addObject("Part::Feature","FullBase")
+FullBase .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(FullBase1.Label)
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = FullBase
+cut.Tool = ScrewCut3
+doc.recompute()
+
+FullBase1 =doc.addObject("Part::Feature","FullBase1")
+FullBase1 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(FullBase.Label)
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = FullBase1
+cut.Tool = ScrewCut4
+doc.recompute()
+
+FullBase =doc.addObject("Part::Feature","FullBase")
+FullBase .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(FullBase1.Label)
+
+doc.removeObject(ScrewCut1.Label)
+doc.removeObject(ScrewCut2.Label)
+doc.removeObject(ScrewCut3.Label)
+doc.removeObject(ScrewCut4.Label)
+
+## cut outs for the lipo wire
+
+ellipse2 = doc.addObject("Part::Ellipsoid","Ellipsoid2")
+doc.Ellipsoid2.Radius1=6.00
+doc.Ellipsoid2.Radius2=6.00
+doc.Ellipsoid2.Radius3=5.00
+doc.Ellipsoid2.Angle1=-90.00
+doc.Ellipsoid2.Angle2=90.00
+doc.Ellipsoid2.Angle3=360.00
+
+doc.Ellipsoid2.Placement=App.Placement(App.Vector(20.00,25.00,3),App.Rotation(0.00,0.00,0.00,1.00))
+doc.Ellipsoid2.Label='Ellipsoid2'
+
+doc.recompute()
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = FullBase
+cut.Tool = ellipse2
+doc.recompute()
+
+FullBase2 =doc.addObject("Part::Feature","FullBase2")
+FullBase2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(FullBase.Label)
+doc.removeObject(ellipse2.Label)
+
+
+wire_cyl = doc.addObject("Part::Cylinder","wire_cyl")
+doc.wire_cyl.Radius=6.00
+doc.wire_cyl.Height=30.00
+
+#doc.wire_cyl.Radius2=6.00
+#doc.wire_cyl.Radius3=15.00
+#doc.wire_cyl.Angle1=-90.00
+#doc.wire_cyl.Angle2=90.00
+#doc.wire_cyl.Angle3=360.00
+
+doc.wire_cyl.Placement=App.Placement(App.Vector(20.00,25.00,3),App.Rotation(App.Vector(1,0,0),90))
+doc.wire_cyl.Label='wire_cyl'
+
+doc.recompute()
+
+
+
+
+ellipse2 = doc.addObject("Part::Ellipsoid","Ellipsoid2")
+doc.Ellipsoid2.Radius1=6.00
+doc.Ellipsoid2.Radius2=6.00
+doc.Ellipsoid2.Radius3=15.00
+doc.Ellipsoid2.Angle1=-90.00
+doc.Ellipsoid2.Angle2=90.00
+doc.Ellipsoid2.Angle3=360.00
+
+doc.Ellipsoid2.Placement=App.Placement(App.Vector(20.00,-5.00,3),App.Rotation(0.00,0.00,0.00,1.00))
+doc.Ellipsoid2.Label='Ellipsoid2'
+
+doc.recompute()
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = FullBase2
+cut.Tool = ellipse2
+doc.recompute()
+
+FullBase =doc.addObject("Part::Feature","FullBase")
+FullBase .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(FullBase2.Label)
+doc.removeObject(ellipse2.Label)
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = FullBase
+cut.Tool = wire_cyl
+doc.recompute()
+
+FullBase2 =doc.addObject("Part::Feature","FullBase2")
+FullBase2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(FullBase.Label)
+doc.removeObject(wire_cyl.Label)
+
+
+
+ellipse3 = doc.addObject("Part::Ellipsoid","Ellipsoid3")
+doc.Ellipsoid3.Radius1=8.00
+doc.Ellipsoid3.Radius2=20.00
+doc.Ellipsoid3.Radius3=10.00
+doc.Ellipsoid3.Angle1=-90.00
+doc.Ellipsoid3.Angle2=90.00
+doc.Ellipsoid3.Angle3=360.00
+
+doc.Ellipsoid3.Placement=App.Placement(App.Vector(0.00,-LIPO_WIDTH/2-1,3),App.Rotation(0.00,0.00,0.00,1.00))
+doc.Ellipsoid3.Label='Ellipsoid3'
+
+doc.recompute()
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = FullBase2
+cut.Tool = ellipse3
+doc.recompute()
+
+FullBase =doc.addObject("Part::Feature","FullBase")
+FullBase .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(FullBase2.Label)
+doc.removeObject(ellipse3.Label)
+
+
+
+## hex nuts for the lipo base
+SIDE_OFFSET=27.5
+FRONT_OFFSET=2.0
+HEX_NUT_DIAM = 9.0
+
+
+ScrewCut1 = doc.addObject("Part::Cylinder","ScrewCut1")
+ScrewCut1.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut1.Radius = HEX_NUT_DIAM/2
+
+ScrewCut1.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,-slt/2 -FRONT_OFFSET ,-50),App.Rotation(App.Vector(1,0,0),56)) 
+
+
+
+
+
+ScrewCut2 = doc.addObject("Part::Cylinder","ScrewCut2")
+ScrewCut2.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut2.Radius = HEX_NUT_DIAM/2
+ScrewCut2.Placement = App.Placement(App.Vector(+swt/2-SIDE_OFFSET,-slt/2 -FRONT_OFFSET ,-50),App.Rotation(App.Vector(1,0,0),56)) 
+
+
+
+
+ScrewCut3 = doc.addObject("Part::Cylinder","ScrewCut3")
+ScrewCut3.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut3.Radius = HEX_NUT_DIAM/2
+ScrewCut3.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,slt/2 +FRONT_OFFSET ,-50),App.Rotation(App.Vector(1,0,0),-56)) 
+
+
+
+
+
+ScrewCut4 = doc.addObject("Part::Cylinder","ScrewCut4")
+ScrewCut4.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut4.Radius = HEX_NUT_DIAM/2
+ScrewCut4.Placement = App.Placement(App.Vector(+swt/2-SIDE_OFFSET,slt/2 +FRONT_OFFSET ,-50),App.Rotation(App.Vector(1,0,0),-56)) 
+
+
+
+
+### START OF HOLES INTO BASE
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = FullBase
+cut.Tool = ScrewCut1
+doc.recompute()
+baseplate2pre0 =doc.addObject("Part::Feature","baseplate2pre0")
+baseplate2pre0 .Label="baseplate2pre0"
+baseplate2pre0 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(FullBase.Label)
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = baseplate2pre0
+cut.Tool = ScrewCut2
+doc.recompute()
+
+baseplate2pre1 =doc.addObject("Part::Feature","baseplate2pre1")
+baseplate2pre1 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(baseplate2pre0.Label)
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = baseplate2pre1
+cut.Tool = ScrewCut3
+doc.recompute()
+
+baseplate2pre2 =doc.addObject("Part::Feature","baseplate2pre2")
+baseplate2pre2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(baseplate2pre1.Label)
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = baseplate2pre2
+cut.Tool = ScrewCut4
+doc.recompute()
+
+baseplate2 =doc.addObject("Part::Feature","baseplate2")
+baseplate2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(baseplate2pre2.Label)
+
+doc.removeObject(ScrewCut1.Label)
+doc.removeObject(ScrewCut2.Label)
+doc.removeObject(ScrewCut3.Label)
+doc.removeObject(ScrewCut4.Label)
+
+### END OF HOLES INTO BASE
+
+
+
+#sys.exit('bye')
+
+
+### START OF CHIP ENCLOSURE
+
+#ymin_match = LIPO_HEIGHT + 3 - PLATE_THICKNESS # at this point the wedge must be wb x lb
+#ymax = MAX_HEIGHT
+#ymin = -51
+
+
+#match_height = MAX_HEIGHT-ymin_match
+#true_height = MAX_HEIGHT-ymin
+
+#match_ratio = true_height/match_height
+
+
+#match_wb = (swb-swt)*match_ratio + swt
+#match_lb = (slb-slt)*match_ratio + slt
+
+#arduinobox1 = doc.addObject("Part::Wedge", "arduinobox1")
+#arduinobox1.Zmin = -match_wb/2
+#arduinobox1.Xmin = -match_lb/2
+#arduinobox1.Z2min = -swt/2
+#arduinobox1.X2min = -slt/2
+#arduinobox1.Zmax = match_wb/2
+#arduinobox1.Xmax = match_lb/2
+#arduinobox1.Z2max = swt/2
+#arduinobox1.X2max = slt/2
+
+
+
+
+#arduinobox1.Ymin = ymin
+#arduinobox1.Ymax = MAX_HEIGHT
+
+#arduinobox1.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+ymin = LIPO_HEIGHT + 3 - PLATE_THICKNESS # at this point the wedge must be wb x lb
+ymax = MAX_HEIGHT
+
+
+
+arduinobox1 = doc.addObject("Part::Wedge", "arduinobox1")
+arduinobox1.Zmin = -swb/2
+arduinobox1.Xmin = -slb/2
+arduinobox1.Z2min = -swt/2
+arduinobox1.X2min = -slt/2
+arduinobox1.Zmax = swb/2
+arduinobox1.Xmax = slb/2
+arduinobox1.Z2max = swt/2
+arduinobox1.X2max = slt/2
+
+
+
+
+arduinobox1.Ymin = ymin
+arduinobox1.Ymax = MAX_HEIGHT
+
+arduinobox1.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = arduinobox1
+__fillets__ = []
+__fillets__.append((2,2.00,2.00))
+__fillets__.append((3,2.00,2.00))
+__fillets__.append((4,2.00,2.00))
+__fillets__.append((6,2.00,2.00))
+__fillets__.append((7,2.00,2.00))
+__fillets__.append((8,2.00,2.00))
+__fillets__.append((11,2.00,2.00))
+__fillets__.append((12,2.00,2.00))
+fillet.Edges = __fillets__
+del __fillets__
+
+doc.recompute()
+
+
+arduinobox1a = App.ActiveDocument.addObject("Part::Feature","arduinobox1a")
+arduinobox1a.Label = "arduinobox1a"
+arduinobox1a.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('arduinobox1')
+
+
+ymin = -100 # at this point the wedge must be wb x lb
+ymax = LIPO_HEIGHT + 3 - PLATE_THICKNESS 
+
+
+lower_width = 25.5
+lower_length = 140
+
+
+arduinobox2 = doc.addObject("Part::Wedge", "arduinobox2")
+arduinobox2.Zmin = -lower_length/2
+arduinobox2.Xmin = -lower_width/2
+arduinobox2.Z2min = -swb/2
+arduinobox2.X2min = -slb/2
+arduinobox2.Zmax = lower_length/2
+arduinobox2.Xmax = lower_width/2
+arduinobox2.Z2max = swb/2
+arduinobox2.X2max = slb/2
+
+
+
+
+arduinobox2.Ymin = ymin
+arduinobox2.Ymax = ymax+0.01
+
+arduinobox2.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+## MAKE THE OUTER ELLIPSE FOR COLLAR
+outer_ellipse = doc.addObject("Part::Ellipse","outer_ellipse")
+outer_ellipse.MajorRadius=COLLAR_MAJOR_RADIUS
+outer_ellipse.MinorRadius=COLLAR_MINOR_RADIUS
+outer_ellipse.Placement=App.Placement(App.Vector(-COLLAR_WIDTH/2-10,0,-COLLAR_MAJOR_RADIUS),App.Rotation(App.Vector(0,1,0),90)) 
+outer_ellipse.Label='outer_ellipse'
+doc.recompute()
+
+f = doc.addObject('Part::Extrusion', 'Extrude')
+f.Base = outer_ellipse#.App.getDocument('Unnamed').getObject('Ellipse')
+f.DirMode = "Normal"
+f.LengthFwd = COLLAR_WIDTH*2
+f.Solid = True
+doc.recompute()
+
+#outer = doc.addObject('Part::Feature','Cylinder1').Shape=f.Shape
+
+outer = doc.addObject("Part::Feature","Cylinder1")
+outer.Label = "Cylinder1"
+outer.Shape=Part.Solid(Part.Shell(f.Shape.Faces))
+
+
+
+doc.removeObject(outer_ellipse.Name)
+doc.removeObject(f.Name)
+doc.recompute()
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = arduinobox2
+doc.Cut.Tool = outer
+doc.recompute()
+
+arduinobox2a =doc.addObject("Part::Feature","arduinobox2a")
+arduinobox2a .Label="arduinobox2a"
+arduinobox2a .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+doc.removeObject('Cut')
+doc.removeObject('arduinobox2')
+doc.removeObject('Cylinder1')
+doc.recompute()
+
+#sys.exit('bye')
+
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = arduinobox2a
+__fillets__ = []
+__fillets__.append((1,2.00,2.00))
+__fillets__.append((3,2.00,2.00))
+__fillets__.append((6,2.00,2.00))
+__fillets__.append((7,1.0,1.0))
+__fillets__.append((10,2.00,2.00))
+__fillets__.append((11,1.00,1.00))
+fillet.Edges = __fillets__
+del __fillets__
+
+doc.recompute()
+
+
+arduinobox2b = App.ActiveDocument.addObject("Part::Feature","arduinobox2b")
+arduinobox2b.Label = "arduinobox2b"
+arduinobox2b.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('arduinobox2a')
+
+
+
+
+
+
+fusion = doc.addObject("Part::MultiFuse","Fusion")
+doc.Fusion.Shapes = [arduinobox1a,arduinobox2b,]
+doc.recompute()
+
+arduinobox =doc.addObject("Part::Feature","arduinobox")
+
+arduinobox .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
+
+
+doc.removeObject('Fusion')
+doc.removeObject('arduinobox1a')
+doc.removeObject('arduinobox2b')
+doc.recompute()
+
+
+# solar panel cut
+
+
+PanelCutterBox = doc.addObject("Part::Box", "PanelCutterBox")
+PanelCutterBox.Length = PANEL_LENGTH+1
+PanelCutterBox.Width = PANEL_WIDTH+1
+PanelCutterBox.Height = PANEL_HEIGHT+1
+PanelCutterBox.Placement = App.Placement(App.Vector(-(PANEL_LENGTH+2)/2,-(PANEL_WIDTH+2)/2,MAX_HEIGHT-PANEL_HEIGHT-1),App.Rotation(App.Vector(0,0,1),0)) 
+
+doc.recompute()
+cutpanelbox = doc.addObject("Part::Cut","cutpanelbox")
+cutpanelbox.Base = arduinobox
+cutpanelbox.Tool = PanelCutterBox
+doc.recompute()
+
+
+arduinobox2 =doc.addObject("Part::Feature","arduinobox2")
+arduinobox2 .Label="arduinobox2"
+arduinobox2 .Shape=Part.Solid(Part.Shell(cutpanelbox.Shape.Faces))
+
+doc.removeObject('cutpanelbox')
+doc.removeObject('PanelCutterBox')
+doc.removeObject('arduinobox')
+
+# cut out the lipo box
+
+## REPEAT OF BATTERY BOX
+
+BASE_FLOOR_HEIGHT = LIPO_HEIGHT + 3 - PLATE_THICKNESS
+
+bwbwtol = bwb+0.5
+blbwtol = blt+0.5
+bwtwtol = bwt+0.5
+bltwtol = blt+0.5
+
+lipobox = doc.addObject("Part::Wedge", "lipobox")
+lipobox.Zmin = -bwbwtol/2
+lipobox.Xmin = -blbwtol/2
+lipobox.Z2min = -bwtwtol/2
+lipobox.X2min = -bltwtol/2
+lipobox.Zmax = bwbwtol/2
+lipobox.Xmax = blbwtol/2
+lipobox.Z2max = bwtwtol/2
+lipobox.X2max = bltwtol/2
+
+lipobox.Ymin = -32.88 - 15
+lipobox.Ymax = LIPO_HEIGHT + 3 - PLATE_THICKNESS  # 10 mm for lipo, 3 for tolerance and lower into the casing
+
+
+lipobox.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+cutchipbox = doc.addObject("Part::Cut","cutchipbox")
+cutchipbox.Base = arduinobox2
+cutchipbox.Tool = lipobox
+doc.recompute()
+
+
+arduinobox =doc.addObject("Part::Feature","arduinobox")
+arduinobox .Label="arduinobox"
+arduinobox .Shape=Part.Solid(Part.Shell(cutchipbox.Shape.Faces))
+
+doc.removeObject('lipobox')
+
+doc.removeObject('cutchipbox')
+doc.removeObject('arduinobox2')
+
+
+
+
+
+# chipcutter
+
+ChipCutterBox1 = doc.addObject("Part::Wedge", "ChipCutterBox1")
+ChipCutterBox1.Xmin = -(CHIP_LENGTH+3)/2
+ChipCutterBox1.X2min = -(CHIP_LENGTH+3)/2
+ChipCutterBox1.Xmax = (CHIP_LENGTH+3)/2
+ChipCutterBox1.X2max = (CHIP_LENGTH+3)/2
+
+ChipCutterBox1.Zmin = -(CHIP_WIDTH+5)/2
+ChipCutterBox1.Z2min = -(CHIP_WIDTH+2-3)/2
+ChipCutterBox1.Zmax = (CHIP_WIDTH+5)/2
+ChipCutterBox1.Z2max = (CHIP_WIDTH+2-3)/2
+
+ChipCutterBox1.Ymin = LIPO_HEIGHT + 3 - PLATE_THICKNESS 
+ChipCutterBox1.Ymax = CHIP_HEIGHT + LIPO_HEIGHT + 3 - PLATE_THICKNESS 
+ChipCutterBox1.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = ChipCutterBox1
+__fillets__ = []
+__fillets__.append((2,2.00,2.00))
+__fillets__.append((3,2.00,2.00))
+__fillets__.append((4,2.00,2.00))
+__fillets__.append((6,2.00,2.00))
+__fillets__.append((7,2.00,2.00))
+__fillets__.append((8,2.00,2.00))
+__fillets__.append((11,2.00,2.00))
+__fillets__.append((12,2.00,2.00))
+fillet.Edges = __fillets__
+del __fillets__
+
+doc.recompute()
+
+
+ChipCutterBox = App.ActiveDocument.addObject("Part::Feature","ChipCutterBox")
+ChipCutterBox.Label = "ChipCutterBox"
+ChipCutterBox.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))#
+
+doc.removeObject('Fillet')
+doc.removeObject('ChipCutterBox1')
+
+
+
+
+cutchipbox = doc.addObject("Part::Cut","cutchipbox")
+cutchipbox.Base = arduinobox
+cutchipbox.Tool = ChipCutterBox
+doc.recompute()
+
+
+arduinobox2 =doc.addObject("Part::Feature","arduinobox2")
+arduinobox2 .Label="arduinobox2"
+arduinobox2 .Shape=Part.Solid(Part.Shell(cutchipbox.Shape.Faces))
+
+doc.removeObject('cutchipbox')
+doc.removeObject('arduinobox')
+
+doc.removeObject('ChipCutterBox')
+
+
+
+# seal protrusion
+
+
+CHIPBOX_MIN = LIPO_HEIGHT + 3 - PLATE_THICKNESS 
+
+
+SEAL_HEIGHT = 2
+SEAL_LENGTH = CHIP_LENGTH+3
+SEAL_WIDTH =  CHIP_WIDTH+2+3
+SealBox1 = doc.addObject("Part::Box", "SealBox1")
+SealBox1.Length = SEAL_LENGTH
+SealBox1.Width = SEAL_WIDTH
+SealBox1.Height = SEAL_HEIGHT +1
+SealBox1.Placement = App.Placement(App.Vector(-(SEAL_LENGTH)/2,-(SEAL_WIDTH)/2,CHIPBOX_MIN- SEAL_HEIGHT ),App.Rotation(App.Vector(0,0,1),0)) 
+
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = SealBox1
+__fillets__ = []
+__fillets__.append((1,2.00,2.00))
+__fillets__.append((3,2.00,2.00))
+__fillets__.append((5,2.00,2.00))
+__fillets__.append((7,2.00,2.00))
+fillet.Edges = __fillets__
+del __fillets__
+
+doc.recompute()
+
+
+SealBox1a = App.ActiveDocument.addObject("Part::Feature","SealBox1a")
+SealBox1a.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('SealBox1')
+
+
+doc.recompute()
+
+
+SEAL_HEIGHT = 2
+SEAL_LENGTH = CHIP_LENGTH+3+2.5
+SEAL_WIDTH =  CHIP_WIDTH+2+3+2.5
+SealBox2 = doc.addObject("Part::Box", "SealBox2")
+SealBox2.Length = SEAL_LENGTH
+SealBox2.Width = SEAL_WIDTH
+SealBox2.Height = SEAL_HEIGHT+1
+SealBox2.Placement = App.Placement(App.Vector(-(SEAL_LENGTH)/2,-(SEAL_WIDTH)/2,CHIPBOX_MIN- SEAL_HEIGHT ),App.Rotation(App.Vector(0,0,1),0)) 
+
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = SealBox2
+__fillets__ = []
+__fillets__.append((1,2.00,2.00))
+__fillets__.append((3,2.00,2.00))
+__fillets__.append((5,2.00,2.00))
+__fillets__.append((7,2.00,2.00))
+fillet.Edges = __fillets__
+del __fillets__
+
+doc.recompute()
+
+
+SealBox2a = App.ActiveDocument.addObject("Part::Feature","SealBox2a")
+SealBox2a.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('SealBox2')
+
+
+doc.recompute()
+
+
+sealboxcut = doc.addObject("Part::Cut","sealboxcut")
+sealboxcut.Base = SealBox2a
+sealboxcut.Tool = SealBox1a
+doc.recompute()
+
+
+
+sealbox =doc.addObject("Part::Feature","sealbox")
+sealbox.Label="sealbox"
+sealbox.Shape=Part.Solid(Part.Shell(sealboxcut.Shape.Faces))
+
+doc.removeObject('sealboxcut')
+doc.recompute()
+
+doc.removeObject('SealBox1a')
+doc.removeObject('SealBox2a')
+
+# stick seal and top together
+
+
+
+j = BOPTools.JoinFeatures.makeConnect(name = 'TopJoin')
+j.Objects = [arduinobox2, sealbox]
+j.Proxy.execute(j)
+j.purgeTouched()
+
+arduinobox=doc.addObject("Part::Feature","arduinobox")
+arduinobox.Shape=Part.Solid(Part.Shell(doc.TopJoin.Shape.Faces))
+
+
+doc.removeObject("TopJoin")
+doc.removeObject("arduinobox2")
+doc.removeObject("sealbox")
+# solar wire
+
+
+
+ellipse = doc.addObject("Part::Ellipsoid","Ellipsoid")
+doc.Ellipsoid.Radius1=20.00
+doc.Ellipsoid.Radius2=10.00
+doc.Ellipsoid.Radius3=25.00
+doc.Ellipsoid.Angle1=-90.00
+doc.Ellipsoid.Angle2=90.00
+doc.Ellipsoid.Angle3=360.00
+doc.Ellipsoid.Placement=App.Placement(App.Vector(0.00,0.00,MAX_HEIGHT),App.Rotation(0.00,0.00,0.00,1.00))
+doc.Ellipsoid.Label='Ellipsoid'
+
+doc.recompute()
+
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = arduinobox
+cut.Tool = ellipse
+doc.recompute()
+
+arduinobox2 =doc.addObject("Part::Feature","arduinobox2")
+arduinobox2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(arduinobox.Label)
+doc.removeObject(ellipse.Label)
+
+# screw holes
+
+
+
+## hex nuts for the lipo base
+SIDE_OFFSET=27.5
+FRONT_OFFSET=2.0
+HEX_NUT_DIAM = 7.0
+
+
+ScrewCut1 = doc.addObject("Part::Cylinder","ScrewCut1")
+ScrewCut1.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut1.Radius = HEX_NUT_DIAM/2
+
+ScrewCut1.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,-slt/2 -FRONT_OFFSET ,-50),App.Rotation(App.Vector(1,0,0),56)) 
+
+
+
+
+
+ScrewCut2 = doc.addObject("Part::Cylinder","ScrewCut2")
+ScrewCut2.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut2.Radius = HEX_NUT_DIAM/2
+ScrewCut2.Placement = App.Placement(App.Vector(+swt/2-SIDE_OFFSET,-slt/2 -FRONT_OFFSET ,-50),App.Rotation(App.Vector(1,0,0),56)) 
+
+
+
+
+ScrewCut3 = doc.addObject("Part::Cylinder","ScrewCut3")
+ScrewCut3.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut3.Radius = HEX_NUT_DIAM/2
+ScrewCut3.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,slt/2 +FRONT_OFFSET ,-50),App.Rotation(App.Vector(1,0,0),-56)) 
+
+
+
+
+
+ScrewCut4 = doc.addObject("Part::Cylinder","ScrewCut4")
+ScrewCut4.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut4.Radius = HEX_NUT_DIAM/2
+ScrewCut4.Placement = App.Placement(App.Vector(+swt/2-SIDE_OFFSET,slt/2 +FRONT_OFFSET ,-50),App.Rotation(App.Vector(1,0,0),-56)) 
+
+
+
+
+### START OF HOLES INTO BASE
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = arduinobox2
+cut.Tool = ScrewCut1
+doc.recompute()
+arduinobox =doc.addObject("Part::Feature","arduinobox")
+arduinobox .Label="arduinobox"
+arduinobox .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(arduinobox2.Label)
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = arduinobox
+cut.Tool = ScrewCut2
+doc.recompute()
+
+arduinobox2 =doc.addObject("Part::Feature","arduinobox2")
+arduinobox2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(arduinobox.Label)
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = arduinobox2
+cut.Tool = ScrewCut3
+doc.recompute()
+
+arduinobox =doc.addObject("Part::Feature","arduinobox")
+arduinobox .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(arduinobox2.Label)
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = arduinobox
+cut.Tool = ScrewCut4
+doc.recompute()
+
+arduinobox2 =doc.addObject("Part::Feature","arduinobox2")
+arduinobox2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(arduinobox.Label)
+
+doc.removeObject(ScrewCut1.Label)
+doc.removeObject(ScrewCut2.Label)
+doc.removeObject(ScrewCut3.Label)
+doc.removeObject(ScrewCut4.Label)
+
+
+## hex nuts for the lipo base
+SIDE_OFFSET=27.5
+FRONT_OFFSET=2.0
+HEX_NUT_DIAM = 12.0
+
+from math import * 
+
+offset = 14+15
+yshift = offset*sin(radians(-56))
+zshift = offset*cos(radians(-56))
+
+ScrewCut1 = doc.addObject("Part::Cylinder","ScrewCut1")
+ScrewCut1.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut1.Radius = HEX_NUT_DIAM/2
+
+ScrewCut1.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,-slt/2 -FRONT_OFFSET + yshift ,-50+zshift),App.Rotation(App.Vector(1,0,0),56)) 
+
+#ScrewCut1.Placement = App.Placement(App.Vector(-10.0,-10.0,0),App.Rotation(App.Vector(1,0,0),56)) 
+
+
+
+
+ScrewCut2 = doc.addObject("Part::Cylinder","ScrewCut2")
+ScrewCut2.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut2.Radius = HEX_NUT_DIAM/2
+ScrewCut2.Placement = App.Placement(App.Vector(+swt/2-SIDE_OFFSET,-slt/2 -FRONT_OFFSET + yshift ,-50+zshift),App.Rotation(App.Vector(1,0,0),56)) 
+
+
+
+
+ScrewCut3 = doc.addObject("Part::Cylinder","ScrewCut3")
+ScrewCut3.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut3.Radius = HEX_NUT_DIAM/2
+ScrewCut3.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,slt/2 +FRONT_OFFSET - yshift,-50+zshift),App.Rotation(App.Vector(1,0,0),-56)) 
+
+
+
+
+
+ScrewCut4 = doc.addObject("Part::Cylinder","ScrewCut4")
+ScrewCut4.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
+ScrewCut4.Radius = HEX_NUT_DIAM/2
+ScrewCut4.Placement = App.Placement(App.Vector(+swt/2-SIDE_OFFSET,slt/2 +FRONT_OFFSET - yshift,-50+zshift),App.Rotation(App.Vector(1,0,0),-56)) 
+
+
+
+
+### START OF HOLES INTO BASE
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = arduinobox2
+cut.Tool = ScrewCut1
+doc.recompute()
+arduinobox =doc.addObject("Part::Feature","arduinobox")
+arduinobox .Label="arduinobox"
+arduinobox .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(arduinobox2.Label)
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = arduinobox
+cut.Tool = ScrewCut2
+doc.recompute()
+
+arduinobox2 =doc.addObject("Part::Feature","arduinobox2")
+arduinobox2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(arduinobox.Label)
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = arduinobox2
+cut.Tool = ScrewCut3
+doc.recompute()
+
+arduinobox =doc.addObject("Part::Feature","arduinobox")
+arduinobox .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(arduinobox2.Label)
+
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = arduinobox
+cut.Tool = ScrewCut4
+doc.recompute()
+
+arduinobox2 =doc.addObject("Part::Feature","arduinobox2")
+arduinobox2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(arduinobox.Label)
+
+doc.removeObject(ScrewCut1.Label)
+doc.removeObject(ScrewCut2.Label)
+doc.removeObject(ScrewCut3.Label)
+doc.removeObject(ScrewCut4.Label)
+
+
+
+FreeCADGui.getDocument("Unnamed").getObject("arduinobox2").Transparency = 40
+FreeCADGui.getDocument("Unnamed").getObject("baseplate2").Transparency = 40
+
+
+
+sys.exit('bye')
+
+## MAKE THE OUTER ELLIPSE FOR COLLAR
+outer_ellipse = doc.addObject("Part::Ellipse","outer_ellipse")
+outer_ellipse.MajorRadius=COLLAR_MAJOR_RADIUS
+outer_ellipse.MinorRadius=COLLAR_MINOR_RADIUS
+outer_ellipse.Placement=App.Placement(App.Vector(-COLLAR_WIDTH/2-10,0,-COLLAR_MAJOR_RADIUS),App.Rotation(App.Vector(0,1,0),90)) 
+outer_ellipse.Label='outer_ellipse'
+doc.recompute()
+
+f = doc.addObject('Part::Extrusion', 'Extrude')
+f.Base = outer_ellipse#.App.getDocument('Unnamed').getObject('Ellipse')
+f.DirMode = "Normal"
+f.LengthFwd = COLLAR_WIDTH*2
+f.Solid = True
+doc.recompute()
+
+#outer = doc.addObject('Part::Feature','Cylinder1').Shape=f.Shape
+
+outer = doc.addObject("Part::Feature","Cylinder1")
+outer.Label = "Cylinder1"
+outer.Shape=Part.Solid(Part.Shell(f.Shape.Faces))
+
+
+
+doc.removeObject(outer_ellipse.Name)
+doc.removeObject(f.Name)
+doc.recompute()
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = arduinobox
+doc.Cut.Tool = outer
+doc.recompute()
+
+arduinobox2 =doc.addObject("Part::Feature","arduinobox2")
+arduinobox2 .Label="arduinobox2"
+arduinobox2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+doc.removeObject('Cut')
+doc.removeObject('arduinobox')
+doc.removeObject('Cylinder1')
+doc.recompute()
+
+arduinobox = doc.addObject('Part::Feature','arduinobox')
+arduinobox.Shape=arduinobox2.Shape.removeSplitter()
+doc.removeObject('arduinobox2')
+doc.recompute()
+
+sys.exit('bye')
+
+
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = arduinobox
+__fillets__ = []
+#__fillets__.append((2,2.00,2.00))
+__fillets__.append((7,2.00,2.00))
+#__fillets__.append((8,2.00,2.00))
+#__fillets__.append((9,2.00,2.00))
+#__fillets__.append((13,2.00,2.00))
+#__fillets__.append((16,2.00,2.00))
+#__fillets__.append((18,2.00,2.00))
+#__fillets__.append((19,2.00,2.00))
+#__fillets__.append((21,2.00,2.00))
+#__fillets__.append((22,2.00,2.00))
+#__fillets__.append((23,2.00,2.00))
+#__fillets__.append((25,2.00,2.00))
+#__fillets__.append((26,2.00,2.00))
+#__fillets__.append((27,2.00,2.00))
+#__fillets__.append((30,2.00,2.00))
+#__fillets__.append((31,2.00,2.00))
+#__fillets__.append((32,2.00,2.00))
+#__fillets__.append((34,2.00,2.00))
+fillet.Edges = __fillets__
+del __fillets__
+
+doc.recompute()
+
+
+arduinobox2 = App.ActiveDocument.addObject("Part::Feature","arduinobox2")
+arduinobox2.Label = "arduinobox2"
+arduinobox2.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('arduinobox')
+
+
+doc.recompute()
+
+
+
+
+
+
+sys.exit('bye')
+
+ymin_match = LIPO_HEIGHT + 3 - PLATE_THICKNESS # at this point the wedge must be wb x lb
+ymax = MAX_HEIGHT
+ymin = -36
+
+
+match_height = MAX_HEIGHT-ymin_match
+true_height = MAX_HEIGHT-ymin
+
+match_ratio = true_height/(true_height-match_height)
+
+lower_width = 46.5
+#match_wt = (swb-match_wb)*match_ratio + match_wb
+match_lt = (slt-lower_width)*match_ratio + lower_width
+
+arduinobox2 = doc.addObject("Part::Wedge", "arduinobox2")
+arduinobox2.Zmin = -match_wb/2
+arduinobox2.Xmin = -lower_width/2
+arduinobox2.Z2min = -swt/2
+arduinobox2.X2min = -match_lt/2
+arduinobox2.Zmax = match_wb/2
+arduinobox2.Xmax = lower_width/2
+arduinobox2.Z2max = swt/2
+arduinobox2.X2max = match_lt/2
+
+
+
+
+arduinobox2.Ymin = ymin
+arduinobox2.Ymax = MAX_HEIGHT
+
+arduinobox2.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+common = doc.addObject("Part::MultiCommon","Common")
+doc.Common.Shapes = [arduinobox1,arduinobox2,]
+doc.recompute()
+
+arduinobox = doc.addObject("Part::Feature","arduinobox")
+arduinobox.Label = "arduinobox"
+arduinobox.Shape=Part.Solid(Part.Shell(common.Shape.Faces))
+
+doc.removeObject('Common')
+doc.removeObject('arduinobox1')
+doc.removeObject('arduinobox2')
+doc.recompute()
+
+
+
+
+
+## MAKE THE OUTER ELLIPSE FOR COLLAR
+outer_ellipse = doc.addObject("Part::Ellipse","outer_ellipse")
+outer_ellipse.MajorRadius=COLLAR_MAJOR_RADIUS + PLATE_THICKNESS
+outer_ellipse.MinorRadius=COLLAR_MINOR_RADIUS + PLATE_THICKNESS
+outer_ellipse.Placement=App.Placement(App.Vector(-COLLAR_WIDTH/2,0,-COLLAR_MAJOR_RADIUS),App.Rotation(App.Vector(0,1,0),90)) 
+outer_ellipse.Label='outer_ellipse'
+doc.recompute()
+
+f = doc.addObject('Part::Extrusion', 'Extrude')
+f.Base = outer_ellipse#.App.getDocument('Unnamed').getObject('Ellipse')
+f.DirMode = "Normal"
+f.LengthFwd = COLLAR_WIDTH
+f.Solid = True
+doc.recompute()
+
+#outer = doc.addObject('Part::Feature','Cylinder1').Shape=f.Shape
+
+outer = doc.addObject("Part::Feature","Cylinder1")
+outer.Label = "Cylinder1"
+outer.Shape=Part.Solid(Part.Shell(f.Shape.Faces))
+
+
+
+doc.removeObject(outer_ellipse.Name)
+doc.removeObject(f.Name)
+doc.recompute()
+
+## MAKE THE INNER ELLIPSE FOR COLLAR
+inner_ellipse = doc.addObject("Part::Ellipse","inner_ellipse")
+inner_ellipse.MajorRadius=COLLAR_MAJOR_RADIUS 
+inner_ellipse.MinorRadius=COLLAR_MINOR_RADIUS
+inner_ellipse.Placement=App.Placement(App.Vector(-COLLAR_WIDTH/2-5,0,-COLLAR_MAJOR_RADIUS),App.Rotation(App.Vector(0,1,0),90)) 
+inner_ellipse.Label='inner_ellipse'
+doc.recompute()
+
+f = doc.addObject('Part::Extrusion', 'Extrude')
+f.Base = inner_ellipse#.App.getDocument('Unnamed').getObject('Ellipse')
+f.DirMode = "Normal"
+f.LengthFwd = COLLAR_WIDTH+10
+f.Solid = True
+doc.recompute()
+
+#inner = doc.addObject('Part::Feature','Cylinder2').Shape=f.Shape
+inner = doc.addObject("Part::Feature","Cylinder2")
+inner.Label = "Cylinder2"
+inner.Shape=Part.Solid(Part.Shell(f.Shape.Faces))
+doc.removeObject(inner_ellipse.Name)
+doc.removeObject(f.Name)
+doc.recompute()
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outer
+doc.Cut.Tool = inner
+doc.recompute()
+
+cutsolid =doc.addObject("Part::Feature","Cut_solid")
+cutsolid .Label="Cut (Solid)"
+cutsolid .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('Cylinder1')
+doc.removeObject('Cylinder2')
+doc.recompute()
+
+
+box = doc.addObject("Part::Box", "CutterBox")
+this_width =PLATE_LENGTH-3 
+box.Length = PLATE_LENGTH
+box.Width = this_width
+box.Height = 100
+box.Placement = App.Placement(App.Vector(-PLATE_LENGTH/2,-this_width/2,-100/2),App.Rotation(App.Vector(0,0,1),0)) 
+
+doc.recompute()
+
+
+common = doc.addObject("Part::MultiCommon","Common")
+doc.Common.Shapes = [box,cutsolid,]
+doc.recompute()
+
+baseplate0 = doc.addObject("Part::Feature","baseplate0")
+baseplate0.Label = "baseplate0"
+baseplate0.Shape=Part.Solid(Part.Shell(common.Shape.Faces))
+
+doc.removeObject('Common')
+doc.removeObject('CutterBox')
+doc.removeObject('Cut_solid')
+doc.recompute()
+
+
