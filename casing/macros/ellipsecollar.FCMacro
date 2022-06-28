@@ -121,7 +121,7 @@ doc.recompute()
 
 box = doc.addObject("Part::Box", "CutterBox")
 
-cutheight = 90
+cutheight = 200
 box.Length = PLATE_LENGTH
 box.Width = PLATE_LENGTH
 box.Height = cutheight
@@ -143,6 +143,7 @@ doc.removeObject('CutterBox')
 doc.removeObject('Cut_solid')
 doc.recompute()
 
+#sys.exit('bye')
 
 doc.recompute()
 
@@ -994,7 +995,119 @@ doc.removeObject(ScrewCut4.Label)
 #FreeCADGui.getDocument("Unnamed").getObject("baseplate2").Transparency = 40
 
 
+
+ymin = -90-45 # at this point the wedge must be wb x lb
+ymax = LIPO_HEIGHT + 3 - PLATE_THICKNESS 
+
+
+lower_width = 50
+lower_length = swb + 1.5*(150-swb)
+
+
+collaredger = doc.addObject("Part::Wedge", "collaredger")
+collaredger.Zmin = -lower_length/2
+collaredger.Xmin = -lower_width/2
+collaredger.Z2min = -swb/2
+collaredger.X2min = -slb/2
+collaredger.Zmax = lower_length/2
+collaredger.Xmax = lower_width/2
+collaredger.Z2max = swb/2
+collaredger.X2max = slb/2
+
+
+
+
+collaredger.Ymin = ymin
+collaredger.Ymax = ymax+0.01
+
+collaredger.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+common = doc.addObject("Part::MultiCommon","common")
+doc.common.Shapes = [doc.collaredger,doc.baseplate2,]
+
+
+#cut = doc.addObject("Part::Cut","Cut")
+#cut.Base = baseplate2
+#cut.Tool = collaredger
+doc.recompute()
+
+baseplate =doc.addObject("Part::Feature","baseplate")
+baseplate .Shape=Part.Solid(Part.Shell(common.Shape.Faces))
+
+doc.removeObject(common.Label)
+doc.removeObject(baseplate2.Label)
+doc.removeObject(collaredger.Label)
+
+
+#MOUNT_HEIGHT = 150.0
+#MOUNT_LENGTH = 100.0
+#MOUNT_WIDTH =  130.0
+#mountcutter = doc.addObject("Part::Box", "mountcutter")
+#mountcutter.Length = MOUNT_LENGTH
+#mountcutter.Width = MOUNT_WIDTH
+#mountcutter.Height = MOUNT_HEIGHT
+#mountcutter.Placement = App.Placement(App.Vector(-(MOUNT_LENGTH)/2,-(MOUNT_WIDTH)/2,MAX_HEIGHT- MOUNT_HEIGHT ),App.Rotation(App.Vector(0,0,1),0)) 
+
+#common = doc.addObject("Part::MultiCommon","common")
+#doc.common.Shapes = [doc.mountcutter,doc.baseplate,]
+
+
+#cut = doc.addObject("Part::Cut","Cut")
+#cut.Base = baseplate2
+#cut.Tool = collaredger
+#doc.recompute()
+
+#baseplate2 =doc.addObject("Part::Feature","baseplate2")
+#baseplate2 .Shape=Part.Solid(Part.Shell(common.Shape.Faces))
+
+#doc.removeObject(common.Label)
+#doc.removeObject(baseplate.Label)
+#doc.removeObject(mountcutter.Label)
+
+
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = baseplate
+
+__fillets__ = []
+
+__fillets__.append((2,2.00,2.00))
+__fillets__.append((4,2.00,2.00))
+__fillets__.append((67,2.00,2.00))
+__fillets__.append((82,2.00,2.00))
+
+
+__fillets__.append((1,3.00,3.00))
+__fillets__.append((54,3.00,3.00))
+fillet.Edges = __fillets__
+del __fillets__
+
+doc.recompute()
+
+
+baseplate2 = App.ActiveDocument.addObject("Part::Feature","baseplate2")
+baseplate2.Label = "baseplate2"
+baseplate2.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('baseplate')
+
+
+#doc.getObject("mountcutter").Transparency = 60
+
+
 #sys.exit('bye')
+
+
+####################################################
+####################################################
+####################################################
+####################################################
+########### END OF BASE - START OF LID #############
+####################################################
+####################################################
+####################################################
+####################################################
 
 
 ### START OF CHIP ENCLOSURE
@@ -1081,6 +1194,7 @@ doc.removeObject('Fillet')
 doc.removeObject('arduinobox1')
 
 
+
 ymin = -90 # at this point the wedge must be wb x lb
 ymax = LIPO_HEIGHT + 3 - PLATE_THICKNESS 
 
@@ -1129,6 +1243,59 @@ arduinobox2b.Ymax = ymax+0.01
 arduinobox2b.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
 
 
+
+
+#ymin = -90 # at this point the wedge must be wb x lb
+#ymax = LIPO_HEIGHT + 3 - PLATE_THICKNESS 
+
+
+#lower_width = 25.5
+#lower_length = 150
+
+
+#arduinobox2a = doc.addObject("Part::Wedge", "arduinobox2a")
+#arduinobox2a.Zmin = -lower_length/2
+#arduinobox2a.Xmin = -lower_width/2
+#arduinobox2a.Z2min = -swb/2
+#arduinobox2a.X2min = -slb/2
+#arduinobox2a.Zmax = lower_length/2
+#arduinobox2a.Xmax = lower_width/2
+#arduinobox2a.Z2max = swb/2
+#arduinobox2a.X2max = slb/2
+
+
+#frac = 15.0/39
+
+
+#arduinobox2a.Ymin = ymin #ymax - frac*(ymax-ymin) 
+
+#arduinobox2a.Ymax = ymax+0.01
+
+#arduinobox2a.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+#topwidth = 126
+
+#arduinobox2b = doc.addObject("Part::Wedge", "arduinobox2b")
+#arduinobox2b.Zmin = -lower_length/2 #- 8
+#arduinobox2b.Xmin = -50/2
+#arduinobox2b.Z2min = -swb/2
+#arduinobox2b.X2min = -50/2
+#arduinobox2b.Zmax = lower_length/2 #+ 8
+#arduinobox2b.Xmax = 50/2
+#arduinobox2b.Z2max = swb/2
+#arduinobox2b.X2max = 50/2
+
+
+
+#frac = 1.0 - 15.0/39
+#arduinobox2b.Ymin = ymin
+#arduinobox2b.Ymax = ymax +0.1 # ymin + frac*(ymax-ymin) +0.01
+
+#arduinobox2b.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
 fusion = doc.addObject("Part::MultiFuse","Fusion")
 doc.Fusion.Shapes = [doc.arduinobox2a, doc.arduinobox2b]
 doc.recompute()
@@ -1140,11 +1307,11 @@ arduinobox2 .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
 	
 doc.recompute()
 
-
 doc.removeObject(arduinobox2a.Label)
 doc.removeObject(arduinobox2b.Label)
 
 doc.removeObject(fusion.Label)
+
 
 
 CUT_LIPO_BOX_HEIGHT2=50
@@ -1168,7 +1335,7 @@ doc.removeObject('lipobox2')
 doc.removeObject('cutchipbox2')
 doc.removeObject('arduinobox2')
 
-
+#sys.exit('bye')
 
 
 ## MAKE THE OUTER ELLIPSE FOR COLLAR
@@ -1213,19 +1380,36 @@ doc.removeObject('Cylinder1')
 doc.recompute()
 
 
+#common = doc.addObject("Part::MultiCommon","common")
+#doc.common.Shapes = [doc.mountcutter,doc.arduinobox2a,]
+#doc.recompute()
+#arduinobox2b =doc.addObject("Part::Feature","arduinobox2b")
+#arduinobox2b .Shape=Part.Solid(Part.Shell(common.Shape.Faces))
+
+#doc.removeObject(common.Label)
+#doc.removeObject(arduinobox2a.Label)
+#doc.removeObject(mountcutter.Label)
+
+
+
+#sys.exit('bye')
+
+
 fillet = doc.addObject("Part::Fillet","Fillet")
 fillet.Base = arduinobox2a
 __fillets__ = []
-__fillets__.append((6,1.0,1.0))
-__fillets__.append((8,1.0,1.0))
-__fillets__.append((17,1.0,1.0))
-__fillets__.append((37,1.0,1.0))
-__fillets__.append((53,1.0,1.0))
-__fillets__.append((54,1.0,1.0))
+#__fillets__.append((6,0.1,0.10))
+#__fillets__.append((8,1.0,1.0))
+#__fillets__.append((17,1.0,1.0))
+#__fillets__.append((37,1.0,1.0))
+#__fillets__.append((53,1.0,1.0))
+#__fillets__.append((54,1.0,1.0))
+
 
 
 __fillets__.append((7,2.00,2.00))
 __fillets__.append((9,2.00,2.00))
+
 __fillets__.append((15,2.00,2.00))
 __fillets__.append((16,2.00,2.00))
 
@@ -1235,11 +1419,11 @@ __fillets__.append((50,2.00,2.00))
 __fillets__.append((57,2.00,2.00))
 
 
-
 fillet.Edges = __fillets__
 del __fillets__
 
 doc.recompute()
+
 
 
 arduinobox2b = App.ActiveDocument.addObject("Part::Feature","arduinobox2b")
@@ -1248,6 +1432,42 @@ arduinobox2b.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
 
 doc.removeObject('Fillet')
 doc.removeObject('arduinobox2a')
+#sys.exit('bye')
+
+
+
+#fillet = doc.addObject("Part::Fillet","Fillet")
+#fillet.Base = arduinobox2a
+#__fillets__ = []
+#__fillets__.append((1,2.00,2.00))
+#__fillets__.append((3,2.00,2.00))
+#__fillets__.append((7,2.00,2.00))
+#__fillets__.append((14,2.00,2.00))
+#__fillets__.append((43,2.00,2.00))
+#__fillets__.append((44,2.00,2.00))
+#__fillets__.append((52,2.00,2.00))
+#__fillets__.append((53,2.00,2.00))
+
+
+
+#fillet.Edges = __fillets__
+#del __fillets__
+
+#doc.recompute()
+
+
+#arduinobox2b = App.ActiveDocument.addObject("Part::Feature","arduinobox2b")
+#arduinobox2b.Label = "arduinobox2b"
+#arduinobox2b.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+#doc.removeObject('Fillet')
+#doc.removeObject('arduinobox2a')
+
+
+
+
+
+
 
 fusion = doc.addObject("Part::MultiFuse","Fusion")
 doc.Fusion.Shapes = [arduinobox1a,arduinobox2b,]
@@ -1262,7 +1482,109 @@ doc.removeObject('Fusion')
 doc.removeObject('arduinobox1a')
 doc.removeObject('arduinobox2b')
 doc.recompute()
-#sys.exit('bye')
+
+
+
+
+support1 = doc.addObject("Part::Ellipsoid","support1")
+doc.support1.Radius1=3.00
+doc.support1.Radius2=4.00
+doc.support1.Radius3=10.00
+doc.support1.Angle1=-90.00
+doc.support1.Angle2=90.00
+doc.support1.Angle3=360.00
+
+doc.support1.Placement=App.Placement(App.Vector(0.00,-54.60,1),App.Rotation(App.Vector(1,0,0),71)) 
+doc.support1.Label='support1'
+
+
+support2 = doc.addObject("Part::Ellipsoid","support2")
+doc.support2.Radius1=3.00
+doc.support2.Radius2=4.00
+doc.support2.Radius3=10.00
+doc.support2.Angle1=-90.00
+doc.support2.Angle2=90.00
+doc.support2.Angle3=360.00
+
+doc.support2.Placement=App.Placement(App.Vector(20.00,-54.60,1),App.Rotation(App.Vector(1,0,0),71)) 
+doc.support2.Label='support2'
+
+
+support3 = doc.addObject("Part::Ellipsoid","support3")
+doc.support3.Radius1=3.00
+doc.support3.Radius2=4.00
+doc.support3.Radius3=10.00
+doc.support3.Angle1=-90.00
+doc.support3.Angle2=90.00
+doc.support3.Angle3=360.00
+
+doc.support3.Placement=App.Placement(App.Vector(-20.00,-54.60,1),App.Rotation(App.Vector(1,0,0),71)) 
+doc.support3.Label='support3'
+
+
+
+support4 = doc.addObject("Part::Ellipsoid","support4")
+doc.support4.Radius1=3.00
+doc.support4.Radius2=4.00
+doc.support4.Radius3=10.00
+doc.support4.Angle1=-90.00
+doc.support4.Angle2=90.00
+doc.support4.Angle3=360.00
+
+doc.support4.Placement=App.Placement(App.Vector(0.00,54.60,1),App.Rotation(App.Vector(1,0,0),-71)) 
+doc.support4.Label='support4'
+
+
+support5 = doc.addObject("Part::Ellipsoid","support5")
+doc.support5.Radius1=3.00
+doc.support5.Radius2=4.00
+doc.support5.Radius3=10.00
+doc.support5.Angle1=-90.00
+doc.support5.Angle2=90.00
+doc.support5.Angle3=360.00
+
+doc.support5.Placement=App.Placement(App.Vector(20.00,54.60,1),App.Rotation(App.Vector(1,0,0),-71)) 
+doc.support5.Label='support5'
+
+
+support6 = doc.addObject("Part::Ellipsoid","support6")
+doc.support6.Radius1=3.00
+doc.support6.Radius2=4.00
+doc.support6.Radius3=10.00
+doc.support6.Angle1=-90.00
+doc.support6.Angle2=90.00
+doc.support6.Angle3=360.00
+
+doc.support6.Placement=App.Placement(App.Vector(-20.00,54.60,1),App.Rotation(App.Vector(1,0,0),-71)) 
+doc.support6.Label='support6'
+
+
+doc.recompute()
+
+
+
+
+fusion = doc.addObject("Part::MultiFuse","Fusion")
+doc.Fusion.Shapes = [arduinobox,support1,support2,support3,support4,support5,support6]
+doc.recompute()
+
+arduinobox2 =doc.addObject("Part::Feature","arduinobox2")
+
+arduinobox2 .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
+
+
+doc.removeObject('Fusion')
+doc.removeObject('arduinobox')
+doc.removeObject('support1')
+doc.removeObject('support2')
+doc.removeObject('support3')
+doc.removeObject('support4')
+doc.removeObject('support5')
+doc.removeObject('support6')
+
+doc.recompute()
+
+
 
 # solar panel cut
 
@@ -1275,7 +1597,7 @@ PanelCutterBox.Placement = App.Placement(App.Vector(-(PANEL_LENGTH+2)/2,-(PANEL_
 
 doc.recompute()
 cutpanelbox = doc.addObject("Part::Cut","cutpanelbox")
-cutpanelbox.Base = arduinobox
+cutpanelbox.Base = arduinobox2
 cutpanelbox.Tool = PanelCutterBox
 doc.recompute()
 
@@ -1286,7 +1608,7 @@ arduinobox3 .Shape=Part.Solid(Part.Shell(cutpanelbox.Shape.Faces))
 
 doc.removeObject('cutpanelbox')
 doc.removeObject('PanelCutterBox')
-doc.removeObject('arduinobox')
+doc.removeObject('arduinobox2')
 
 # cut out the lipo box
 
@@ -1366,7 +1688,6 @@ doc.removeObject('lipobox')
 
 doc.removeObject('cutchipbox')
 doc.removeObject('arduinobox3')
-
 
 
 
@@ -1881,8 +2202,66 @@ doc.removeObject(ScrewCut4.Label)
 
 
 
+baseplate = doc.addObject('Part::Feature','baseplate')
+baseplate.Shape=doc.baseplate2.Shape.removeSplitter()
+baseplate.Label="baseplate"
+
+doc.removeObject(baseplate2.Label)
 
 
-FreeCADGui.getDocument("Unnamed").getObject("arduinobox2").Transparency = 40
-FreeCADGui.getDocument("Unnamed").getObject("baseplate2").Transparency = 40
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = baseplate
+__fillets__ = []
+__fillets__.append((86,2.00,2.00))
+__fillets__.append((99,2.00,2.00))
+__fillets__.append((100,2.00,2.00))
+__fillets__.append((84,2.00,2.00))
+fillet.Edges = __fillets__
+del __fillets__
+
+doc.recompute()
+
+
+baseplate2 = App.ActiveDocument.addObject("Part::Feature","baseplate2")
+baseplate2.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('baseplate')
+
+
+doc.recompute()
+
+arduinobox = doc.addObject('Part::Feature','arduinobox')
+arduinobox.Shape=doc.arduinobox2.Shape.removeSplitter()
+arduinobox.Label="arduinobox"
+
+doc.removeObject(arduinobox2.Label)
+
+doc.recompute()
+
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = arduinobox
+__fillets__ = []
+__fillets__.append((378,2.00,2.00))
+__fillets__.append((379,2.00,2.00))
+__fillets__.append((380,2.00,2.00))
+__fillets__.append((381,2.00,2.00))
+fillet.Edges = __fillets__
+del __fillets__
+
+doc.recompute()
+
+
+arduinobox2 = App.ActiveDocument.addObject("Part::Feature","arduinobox2")
+arduinobox2.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('arduinobox')
+
+
+doc.recompute()
+
+#FreeCADGui.getDocument("Unnamed").getObject("arduinobox2").Transparency = 40
+#FreeCADGui.getDocument("Unnamed").getObject("baseplate2").Transparency = 40
 
