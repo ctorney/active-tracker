@@ -6,7 +6,7 @@ import Part,PartGui
 import Mesh
 import sys
 
-MAX_HEIGHT = 30
+MAX_HEIGHT = 28
 
 
 COLLAR_MAJOR_RADIUS = 350
@@ -24,7 +24,7 @@ LIPO_HEIGHT = 10
 
 CHIP_WIDTH = 86+4
 CHIP_LENGTH = 52
-CHIP_HEIGHT = 22 
+CHIP_HEIGHT = 20
 
 
 SEAL_LENGTH = CHIP_LENGTH+3
@@ -896,9 +896,9 @@ doc.removeObject(usbcutbox.Label)
 
 ## hex nuts for the lipo base
 SIDE_OFFSET=27.5
-FRONT_OFFSET=2.0
+FRONT_OFFSET=-4.0
 HEX_NUT_DIAM = 9.0
-SCREW_ANGLE=50
+SCREW_ANGLE=43
 
 ScrewCut1 = doc.addObject("Part::Cylinder","ScrewCut1")
 ScrewCut1.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
@@ -993,7 +993,6 @@ doc.removeObject(ScrewCut4.Label)
 ### END OF HOLES INTO BASE
 
 #FreeCADGui.getDocument("Unnamed").getObject("baseplate2").Transparency = 40
-sys.exit('bye')
 
 
 ymin = -90-45 # at this point the wedge must be wb x lb
@@ -1066,6 +1065,7 @@ doc.removeObject(collaredger.Label)
 
 
 
+
 fillet = doc.addObject("Part::Fillet","Fillet")
 fillet.Base = baseplate
 
@@ -1073,12 +1073,12 @@ __fillets__ = []
 
 __fillets__.append((2,2.00,2.00))
 __fillets__.append((4,2.00,2.00))
-__fillets__.append((81,2.00,2.00))
-__fillets__.append((96,2.00,2.00))
+__fillets__.append((87,2.00,2.00))
+__fillets__.append((102,2.00,2.00))
 
 
 __fillets__.append((1,3.00,3.00))
-__fillets__.append((62,3.00,3.00))
+__fillets__.append((68,3.00,3.00))
 fillet.Edges = __fillets__
 del __fillets__
 
@@ -1096,7 +1096,7 @@ doc.removeObject('baseplate')
 #doc.getObject("mountcutter").Transparency = 60
 
 
-#sys.exit('bye')
+
 
 
 ####################################################
@@ -1923,7 +1923,7 @@ doc.removeObject(ellipse.Label)
 
 ## hex nuts for the lipo base
 SIDE_OFFSET=27.5
-FRONT_OFFSET=2.0
+FRONT_OFFSET=-4.0
 HEX_NUT_DIAM = 7.0
 
 
@@ -2020,12 +2020,12 @@ doc.removeObject(ScrewCut4.Label)
 
 ## hex nuts for the lipo base
 SIDE_OFFSET=27.5
-FRONT_OFFSET=2.0
-HEX_NUT_DIAM = 12.0
+#FRONT_OFFSET=2.0
+HEX_NUT_DIAM = 13.0
 
 from math import * 
 
-offset = 14+15+5
+offset = 34+9
 yshift = offset*sin(radians(-SCREW_ANGLE))
 zshift = offset*cos(radians(-SCREW_ANGLE))
 
@@ -2125,12 +2125,12 @@ doc.removeObject(ScrewCut4.Label)
 
 ## hex nuts for the lipo base
 SIDE_OFFSET=27.5
-FRONT_OFFSET=2.0
+#FRONT_OFFSET=2.0
 HEX_NUT_DIAM = 9.0
 
 from math import * 
 
-offset = 25
+offset = 25+9.5
 yshift = offset*sin(radians(-SCREW_ANGLE))
 zshift = offset*cos(radians(-SCREW_ANGLE))
 
@@ -2237,10 +2237,10 @@ doc.removeObject(baseplate2.Label)
 fillet = doc.addObject("Part::Fillet","Fillet")
 fillet.Base = baseplate
 __fillets__ = []
-__fillets__.append((98,2.00,2.00))
-__fillets__.append((100,2.00,2.00))
-__fillets__.append((109,2.00,2.00))
-__fillets__.append((110,2.00,2.00))
+__fillets__.append((104,2.00,2.00))
+__fillets__.append((106,2.00,2.00))
+__fillets__.append((117,2.00,2.00))
+__fillets__.append((118,2.00,2.00))
 fillet.Edges = __fillets__
 del __fillets__
 
