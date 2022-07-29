@@ -2,8 +2,12 @@
 
 #include <SPI.h>
 #include <WiFiNINA.h>
+#include <Wire.h>
 
+#define GPS_I2C_ADDRESS 0x10
 
+#include <Adafruit_GPS.h>
+Adafruit_GPS GPS(&Wire);
 
 #include <Adafruit_ICM20X.h>
 #include <Adafruit_ICM20649.h>
@@ -17,7 +21,6 @@ sensors_event_t temp;
 
 
 
-#include <Wire.h>
 
 
 #include "arduino_secrets.h" 
@@ -67,6 +70,18 @@ void setup() {
       while (true);
     }
 
+  if (!GPS.begin(GPS_I2C_ADDRESS)) 
+  {
+    Serial.println("ERROR: GPS");
+        while (true);
+  }
+
+  
+  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_5HZ);
+  //GPS.sendCommand(PMTK_API_SET_FIX_CTL_100_MILLIHERTZ);
+  
+
 
   // wait a second for connection:
 
@@ -87,9 +102,12 @@ const unsigned long IMUEventInterval = 200; // 200 milliseconds
 
 //WiFiClient client;
 void loop() {
-  // wait for a new client:
-  WiFiClient client = server.available();
 
+  char c = GPS.read();
+  if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
+  // check for a new client:
+  WiFiClient client = server.available();
+   
   // when the client sends the first byte, say hello:
   if (client) 
   {
@@ -136,7 +154,21 @@ void output_imu()
     float ay = float(accel.acceleration.y);
     float az = float(accel.acceleration.z);
 
-    server.print("IMU,");
+
+    
+    if (GPS.hour < 10) { server.print('0'); }
+    server.print(GPS.hour, DEC); server.print(':');
+    if (GPS.minute < 10) { server.print('0'); }
+    server.print(GPS.minute, DEC); server.print(':');
+    if (GPS.seconds < 10) { server.print('0'); }
+    server.print(GPS.seconds, DEC); server.print('.');
+    if (GPS.milliseconds < 10) {
+      server.print("00");
+    } else if (GPS.milliseconds > 9 && GPS.milliseconds < 100) {
+      server.print("0");
+    }
+    server.print(GPS.milliseconds);
+    server.print(",");
     server.print(gx);
     server.print(",");
     server.print(gy);
