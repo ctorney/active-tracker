@@ -107,7 +107,7 @@ void loop() {
   if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
   // check for a new client:
   WiFiClient client = server.available();
-   
+   Serial.println(client.status());
   // when the client sends the first byte, say hello:
   if (client) 
   {
@@ -140,6 +140,9 @@ void loop() {
       alreadyConnected = false;
     }
   }
+  else{
+    client.stop();
+  }
 }
 
 
@@ -168,6 +171,10 @@ void output_imu()
       server.print("0");
     }
     server.print(GPS.milliseconds);
+    server.print(",");
+    server.print(GPS.latitude);
+    server.print(",");
+    server.print(GPS.longitude);
     server.print(",");
     server.print(gx);
     server.print(",");
