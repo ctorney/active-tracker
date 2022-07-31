@@ -103,11 +103,16 @@ const unsigned long IMUEventInterval = 200; // 200 milliseconds
 //WiFiClient client;
 void loop() {
 
+  //Serial.println(WiFi.status());
+
+  
+
   char c = GPS.read();
   if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
   // check for a new client:
   WiFiClient client = server.available();
-   Serial.println(client.status());
+  
+   
   // when the client sends the first byte, say hello:
   if (client) 
   {
@@ -140,9 +145,27 @@ void loop() {
       alreadyConnected = false;
     }
   }
-  else{
-    client.stop();
+  
+  int status = WiFi.status();
+
+  if (status == WL_AP_CONNECTED) 
+  {
+  // a device has connected to the AP
+  // Serial.println("Device connected to AP");
+  } 
+  else 
+  {
+  
+    if (alreadyConnected) 
+    {
+      Serial.println("We have lost the client");
+      client.flush();
+      client.stop();
+      alreadyConnected = false;
+    }
   }
+    // client.stop();
+  
 }
 
 
