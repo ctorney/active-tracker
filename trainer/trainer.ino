@@ -1,20 +1,14 @@
 
 
-
-#include <RTCZero.h>
-#include <Adafruit_GPS.h>
-
-RTCZero rtc;
-Adafruit_GPS GPS(&Wire);
-
-#define I2C_ADDRESS 0x10
-
-
 #include <SPI.h>
-#include <SD.h>
+#include <WiFiNINA.h>
+#include <Wire.h>
+#include "ArduinoLowPower.h"
 
+#define GPS_I2C_ADDRESS 0x10
 
-
+#include <Adafruit_GPS.h>
+Adafruit_GPS GPS(&Wire);
 
 #include <Adafruit_ICM20X.h>
 #include <Adafruit_ICM20649.h>
@@ -26,194 +20,359 @@ sensors_event_t accel;
 sensors_event_t gyro;
 sensors_event_t temp;
 
+#include <RTCZero.h>
+
+#include <imuFilter.h>
+
+constexpr float GAIN = 0.75;     // Fusion gain determines response of heading correction with respect to gravity.
+imuFilter <&GAIN> filter;
+
+float acc_bias[3] = {0.0f, 0.0f, SENSORS_GRAVITY_EARTH};
+float gyro_bias[3] = {0.0f, 0.0f, 0.0f};
+float angle_bias[2] = {0.0f, 0.0f};
+
+float imu_data[5];
+
+constexpr float bias_gain = 0.00001;     // averaging decay rate - should be very low.
+
+#define COLLAR_ID 1
+
+// Both SSID and password must be 8 characters or longer
+#define SECRET_SSID "WILDEBEEST"
+#define SECRET_PASS "WILDEBEEST"
+
+char ssid[] = SECRET_SSID;  
+char pass[] = SECRET_PASS;  
 
 
-#include <Wire.h>
+RTCZero rtc;
 
-bool LED_BLINK = 0; 
-const int chipSelect = SDCARD_SS_PIN;
+int status = WL_IDLE_STATUS;
 
+WiFiServer server(23);
 
-unsigned long previousIMUTime = 0;  
-const unsigned long IMUEventInterval = 200; // 200 milliseconds
+boolean alreadyConnected = false; // whether or not the client was connected previously
+bool GPS_ON = true;
 
-unsigned long previousGPSTime = 0;  
-const unsigned long GPSEventInterval = 10*1000; // 10 seconds
-
-unsigned long previousWakeTime = 0;  
-const unsigned long wakeInterval = 12*60*60*1000; // 12 hours
-
-String filename = "datalog";
+bool active_mode = false;
+bool first_fix = false;
 
 void setup() {
-  // Open serial communications and wait for port to open:
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-
-
+  
+  
+  //Initialize serial and wait for port to open:
   Serial.begin(9600);
+
   delay(2000);
+  Serial.println("starting setup");
 
-  Serial.print("Initializing SD card...");
-/*
-  // see if the card is present and can be initialized:
-  if (!SD.begin(chipSelect)) {
-    Serial.println("Card failed, or not present");
-    // don't do anything more:
-    while (1);
-  }
-  Serial.println("card initialized.");
-
-  // create the filename
-  File root = SD.open("/");
-  int fileCountOnSD = 0;
-  while (true) {
-
-    File entry =  root.openNextFile();
-    if (! entry) {
-      // no more files
-      break;
+  // check for the WiFi module:
+  if (WiFi.status() == WL_NO_MODULE) 
+  {
+    Serial.println("Communication with WiFi module failed!");
+    // don't continue
+    while (true)
+    {
+      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+      delay(1000);                       // wait for a second
+      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+      delay(1000);
     }
+  }
+
+  
+  WiFi.config(IPAddress(192, 168, 4, 1));
+  status = WiFi.beginAP(ssid, pass);
+
+
+  if (status != WL_AP_LISTENING) 
+  {
+    Serial.println("Creating access point failed");
+    // don't continue
+    while (true)
+    {
+      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+      delay(1000);                       // wait for a second
+      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+      delay(1000);
+    }
+  }
+
+  // wait a second for connection:
+  Serial.println("wifi setup");
+  delay(500);
+  
+  if (!icm.begin_I2C()) 
+  {
+    Serial.println("ERROR: ICM ");
+    while (true)
+    {
+      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+      delay(1000);                       // wait for a second
+      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+      delay(1000);
+    }
+  }
+  
+  icm.setAccelRateDivisor(225);
+  icm.setGyroRateDivisor(225);
+
+
+  icm.enableAccelDLPF(true, ICM20X_ACCEL_FREQ_5_7_HZ);
+  icm.enableGyrolDLPF(true, ICM20X_GYRO_FREQ_5_7_HZ);
+  delay(500);
+
+  icm.getEvent(&accel, &gyro, &temp);
+  float ax = float(accel.acceleration.x);
+  float ay = float(accel.acceleration.y);
+  float az = float(accel.acceleration.z);
     
-    // for each file count it
-    fileCountOnSD++;
-  }
-  Serial.println(fileCountOnSD);
-  filename += String(fileCountOnSD);
-  filename += String(".txt");
-  Serial.println(filename);
-*/
-  if (!icm.begin_I2C()) {
-      Serial.println("ERROR: ICM ");
-      return;
+  acc_bias[2] = pow( ax*ax + ay*ay + az*az,0.5) ;
+  filter.setup( ax,ay,az);     
+
+  Serial.println("IMU setup");
+  
+  delay(1000);  
+  if (!GPS.begin(GPS_I2C_ADDRESS)) 
+  {
+    Serial.println("ERROR: GPS");
+    while (true)
+    {
+      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+      delay(1000);                       // wait for a second
+      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+      delay(1000);
     }
-
-
-  //GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
+  }
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
-  GPS.sendCommand(PMTK_API_SET_FIX_CTL_1HZ);
+  Serial.println("GPS setup");
 
-  rtc.begin(); // initialize RTC
 
-  rtc.setAlarmTime(0, 15, 0);
-  rtc.enableAlarm(rtc.MATCH_MMSS);
   
-  rtc.attachInterrupt(daily_alarm);
 
-    
-  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+
+   rtc.begin();
+   rtc.setAlarmTime(00,00,10);
+   rtc.enableAlarm(rtc.MATCH_SS);
+
+
   
+
+
+
+  WiFi.end();
+  
+//  LowPower.deepSleep(100000);
 }
 
-void loop() {
-  
+unsigned long previousIMUTime = 0;  
+unsigned long previousConnectionTime = 0;  
+const unsigned long connectionWait = 1000*60*10; // switch off after 10 minutes of no connection
+
+const unsigned long IMUEventInterval = 200; // 200 milliseconds so we record the IMU data at 5hz
+unsigned short imu_counter = 0; // keep track of the sequence of readings in a 10s batch
+const unsigned short imu_length = 50; // 10s batch at 5hz gives use 50 readings in a batch
+
+//WiFiClient client;
+void loop() 
+{
+
+  if (active_mode==false)
+    if (check_time())  // between operating hours and right day 7am to 7pm 
+      activate();
+    else
+      return;
+
   
   unsigned long currentTime = millis();  
-  char c = GPS.read();
-  if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
 
-  /* This is the event */
+  if (currentTime - previousConnectionTime >= connectionWait) 
+  {
+    deactivate();
+    return;
+  }
+  
+  //Serial.println(WiFi.status());
+
+  bool send_imu = false;
+  
   if (currentTime - previousIMUTime >= IMUEventInterval) 
   {
     previousIMUTime = millis();
-    output_imu();
+    update_imu();
+    send_imu = true;
   }
-  if (currentTime - previousGPSTime >= GPSEventInterval) 
+  char c = GPS.read();
+  if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
+  if (!first_fix)
+    if (GPS.fix)
+    {
+      first_fix=true;
+      update_time();
+    }
+  
+  // check for a new client:
+  WiFiClient client = server.available();
+  
+   
+  if (client) 
   {
-    previousGPSTime = millis();
-    output_gps();
-  }
-  if (currentTime - previousWakeTime >= wakeInterval) 
-  {
-    GPS.standby();
-    rtc.standbyMode();
+    client.flush();
+
+    if (!alreadyConnected) 
+      alreadyConnected = true;
+
+    if (client.status() > 0) 
+    {
+      if (send_imu) 
+        output_imu();
+      previousConnectionTime = millis();
+    }
+    else   
+    {
+      Serial.println("We have lost the client");
+      client.flush();
+      client.stop();
+      alreadyConnected = false;
+    }
   }
   
 
+  if ( WiFi.status() != WL_AP_CONNECTED) 
+  {
+    if (alreadyConnected) 
+    {
+      client.flush();
+      client.stop();
+      alreadyConnected = false;
+    }
+  }
+  
 }
 
+bool check_time()
+{
+  int hour = rtc.getHours();
+  int day = rtc.getDay();
+  Serial.println(hour);
+  Serial.println(day);
+  return true;
+}
+
+void update_time()
+{
+  // adjust for UTC
+  rtc.setTime(GPS.hour, GPS.minute, GPS.seconds);
+  rtc.setDate(GPS.day, GPS.month, GPS.year);
+}
+
+
+void deactivate()
+{
+  WiFi.end();
+  active_mode=false;
+  //watchdog off
+
+  WiFi.lowPowerMode();
+  GPS.standby();
+  rtc.standbyMode();
+}
+
+void activate()
+{
+   active_mode=true;
+
+
+  // start the access point
+  status = WiFi.beginAP(ssid, pass);
+
+  // start the server
+  server.begin();
+  
+  printWifiStatus();
+
+      // watchdog on
+
+  icm.getEvent(&accel, &gyro, &temp);
+  float ax = float(accel.acceleration.x);
+  float ay = float(accel.acceleration.y);
+  float az = float(accel.acceleration.z);
+    
+  filter.setup( ax,ay,az);   
+  imu_counter=0;
+
+  first_fix = false;
+  previousConnectionTime = millis();
+  previousIMUTime = millis();
+
+}
+
+
+void update_imu()
+{
+  icm.getEvent(&accel, &gyro, &temp);
+  float gx = float(gyro.gyro.x);
+  float gy = float(gyro.gyro.y); 
+  float gz = float(gyro.gyro.z); 
+  float ax = float(accel.acceleration.x);
+  float ay = float(accel.acceleration.y);
+  float az = float(accel.acceleration.z);
+  filter.update(gx, gy, gz, ax, ay, az);
+
+  float pitch = float(filter.pitch());
+  float roll = float(filter.roll());
+  float v[3] = { ax, ay, az };
+
+  filter.projectVector( true, v );
+
+  acc_bias[0] = (1.0-bias_gain)*acc_bias[0] + bias_gain*v[0];
+  acc_bias[1] = (1.0-bias_gain)*acc_bias[1] + bias_gain*v[1];
+  acc_bias[2] = (1.0-bias_gain)*acc_bias[2] + bias_gain*v[2];
+
+  angle_bias[0] = (1.0-bias_gain)*angle_bias[0] + bias_gain*pitch;
+  angle_bias[1] = (1.0-bias_gain)*angle_bias[1] + bias_gain*roll;
+
+  imu_data[0] = v[0]-acc_bias[0];
+  imu_data[1] = v[1]-acc_bias[1];
+  imu_data[2] = v[2]-acc_bias[2];
+  imu_data[3] = pitch-angle_bias[0];
+  imu_data[4] = roll-angle_bias[1];
+
+  imu_counter++;
+  imu_counter = imu_counter % imu_length;
+
+}
 void output_imu()
 {
 
-    icm.getEvent(&accel, &gyro, &temp);
-    float gx = float(gyro.gyro.x);
-    float gy = float(gyro.gyro.y); 
-    float gz = float(gyro.gyro.z); 
-    float ax = float(accel.acceleration.x);
-    float ay = float(accel.acceleration.y);
-    float az = float(accel.acceleration.z);
-    
-
-    Serial.print(gx);
-    Serial.print(",");
-    Serial.print(gy);
-    Serial.print(",");
-    Serial.print(gz);
-    Serial.print(",");
-    Serial.print(ax);
-    Serial.print(",");
-    Serial.print(ay);
-    Serial.print(",");
-    Serial.println(az);
-
- /*   File dataFile = SD.open(filename, FILE_WRITE);
-    dataFile.print(currentTime);
-    dataFile.print(",");
-    dataFile.print(roll);
-    dataFile.print(",");
-    dataFile.print(pitch);
-    dataFile.print(",");
-    dataFile.print(x);
-    dataFile.print(",");
-    dataFile.print(y);
-    dataFile.print(",");
-    dataFile.println(z);
-
-    dataFile.close();*/
-//    LED_BLINK = !LED_BLINK;
-//    digitalWrite(LED_BUILTIN, LED_BLINK);    // turn the LED off by making the voltage LOW
+  if (GPS.hour < 10) { server.print('0'); }
+  server.print(GPS.hour, DEC); server.print(':');
+  if (GPS.minute < 10) { server.print('0'); }
+  server.print(GPS.minute, DEC); server.print(':');
+  if (GPS.seconds < 10) { server.print('0'); }
+  server.print(GPS.seconds, DEC); server.print(',');
+  server.print(GPS.latitude); server.print(",");
+  server.print(GPS.longitude); server.print(",");
+  server.print(imu_counter); server.print(","); server.print(imu_data[0]); server.print(","); server.print(imu_data[1]);
+  server.print(","); server.print(imu_data[2]); server.print(","); server.print(imu_data[3]); server.print(",");
+  server.println(imu_data[4]);
 
 }
 
-void output_gps()
-{
-      
-  Serial.print("\nTime: ");
-    if (GPS.hour < 10) { Serial.print('0'); }
-    Serial.print(GPS.hour, DEC); Serial.print(':');
-    if (GPS.minute < 10) { Serial.print('0'); }
-    Serial.print(GPS.minute, DEC); Serial.print(':');
-    if (GPS.seconds < 10) { Serial.print('0'); }
-    Serial.print(GPS.seconds, DEC); Serial.print('.');
-    if (GPS.milliseconds < 10) {
-      Serial.print("00");
-    } else if (GPS.milliseconds > 9 && GPS.milliseconds < 100) {
-      Serial.print("0");
-    }
-    Serial.println(GPS.milliseconds);
-    Serial.print("Date: ");
-    Serial.print(GPS.day, DEC); Serial.print('/');
-    Serial.print(GPS.month, DEC); Serial.print("/20");
-    Serial.println(GPS.year, DEC);
-    Serial.print("Fix: "); Serial.print((int)GPS.fix);
-    Serial.print(" quality: "); Serial.println((int)GPS.fixquality);
-    if (GPS.fix) {
-      Serial.print("Location: ");
-      Serial.print(GPS.latitude, 4); Serial.print(GPS.lat);
-      Serial.print(", ");
-      Serial.print(GPS.longitude, 4); Serial.println(GPS.lon);
-      Serial.print("Speed (knots): "); Serial.println(GPS.speed);
-      Serial.print("Angle: "); Serial.println(GPS.angle);
-      Serial.print("Altitude: "); Serial.println(GPS.altitude);
-      Serial.print("Satellites: "); Serial.println((int)GPS.satellites);
-    }
-}
+void printWifiStatus() {
+  // print the SSID of the network you're attached to:
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
 
-void daily_alarm()
-{
-    previousIMUTime = 0;  
-    previousGPSTime = 0;  
-    previousWakeTime = millis();  
+  // print your board's IP address:
+  IPAddress ip = WiFi.localIP();
+  Serial.print("IP Address: ");
+  Serial.println(ip);
 
+  // print the received signal strength:
+  long rssi = WiFi.RSSI();
+  Serial.print("signal strength (RSSI):");
+  Serial.print(rssi);
+  Serial.println(" dBm");
 }
