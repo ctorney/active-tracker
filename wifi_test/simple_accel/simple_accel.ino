@@ -46,27 +46,34 @@ int status = WL_IDLE_STATUS;
 WiFiServer server(23);
 
 boolean alreadyConnected = false; // whether or not the client was connected previously
+bool GPS_ON = true;
 
 void setup() {
-  // while (true);
+  
   
   //Initialize serial and wait for port to open:
   Serial.begin(9600);
 
-    delay(5000);
-      Serial.println("starting setup");
+  delay(2000);
+  Serial.println("starting setup");
 
   // check for the WiFi module:
-  if (WiFi.status() == WL_NO_MODULE) {
+  if (WiFi.status() == WL_NO_MODULE) 
+  {
     Serial.println("Communication with WiFi module failed!");
     // don't continue
     while (true)
-    
-    ;
+    {
+      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+      delay(1000);                       // wait for a second
+      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+      delay(1000);
+    }
   }
 
   String fv = WiFi.firmwareVersion();
-  if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
+  if (fv < WIFI_FIRMWARE_LATEST_VERSION) 
+  {
     Serial.println("Please upgrade the firmware");
   }
 
@@ -75,74 +82,79 @@ void setup() {
   status = WiFi.beginAP(ssid, pass);
 
 
-  if (status != WL_AP_LISTENING) {
-    Serial.println("Creating access point failed");
-
-
-    // don't continue
-    while (true);
-
-
-  }
-if (!icm.begin_I2C()) {
-      Serial.println("ERROR: ICM ");
-        while (true)
-        {
-digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(1000);                       // wait for a second
-  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-  delay(1000);
-        }
-    }
-      Serial.println("I2C setup");
-  
-    
-
-        if (!GPS.begin(GPS_I2C_ADDRESS)) 
+  if (status != WL_AP_LISTENING) 
   {
-    Serial.println("ERROR: GPS");
-        while (true)
-        {
-digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(1000);                       // wait for a second
-  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-  delay(1000);
-        }
+    Serial.println("Creating access point failed");
+    // don't continue
+    while (true)
+    {
+      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+      delay(1000);                       // wait for a second
+      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+      delay(1000);
+    }
   }
 
+  // wait a second for connection:
+  Serial.println("wifi setup");
+  delay(500);
   
-  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_5HZ);
-
-
-  //GPS.sendCommand(PMTK_API_SET_FIX_CTL_100_MILLIHERTZ);
+  if (!icm.begin_I2C()) 
+  {
+    Serial.println("ERROR: ICM ");
+    while (true)
+    {
+      digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+      delay(1000);                       // wait for a second
+      digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+      delay(1000);
+    }
+  }
   
-
-
   icm.setAccelRateDivisor(225);
   icm.setGyroRateDivisor(225);
 
 
   icm.enableAccelDLPF(true, ICM20X_ACCEL_FREQ_5_7_HZ);
   icm.enableGyrolDLPF(true, ICM20X_GYRO_FREQ_5_7_HZ);
-  delay(100);
+  delay(500);
 
   icm.getEvent(&accel, &gyro, &temp);
   float ax = float(accel.acceleration.x);
   float ay = float(accel.acceleration.y);
   float az = float(accel.acceleration.z);
-//
-  acc_bias[0] = ax;
-  acc_bias[1] = ay;
-  acc_bias[2] = az;
+    
+  acc_bias[2] = pow( ax*ax + ay*ay + az*az,0.5) ;
   filter.setup( ax,ay,az);     
 
+  Serial.println("IMU setup");
+  
+  delay(1000);  
+  if (GPS_ON)
+  {
+    if (!GPS.begin(GPS_I2C_ADDRESS)) 
+    {
+      Serial.println("ERROR: GPS");
+      while (true)
+      {
+        digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+        delay(1000);                       // wait for a second
+        digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+        delay(1000);
+      }
+    }
+    GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
+    GPS.sendCommand(PMTK_SET_NMEA_UPDATE_5HZ);
+    Serial.println("GPS setup");
+  }
+
+  
 
 
-  // wait a second for connection:
-Serial.println("wifi setup");
+  
 
-  delay(1000);
+
+  
 
 
 
@@ -152,17 +164,17 @@ Serial.println("wifi setup");
   // you're connected now, so print out the status:
   printWifiStatus();
 
-  //WiFi.lowPowerMode();
+  // WiFi.lowPowerMode();
   //GPS.standby();
 
 }
 unsigned long previousIMUTime = 0;  
 const unsigned long IMUEventInterval = 200; // 200 milliseconds
 
-bool GPS_ON = true;
 
 //WiFiClient client;
-void loop() {
+void loop() 
+{
 
   //Serial.println(WiFi.status());
 
@@ -243,7 +255,14 @@ void update_imu()
   float ax = float(accel.acceleration.x);
   float ay = float(accel.acceleration.y);
   float az = float(accel.acceleration.z);
-
+//    Serial.print("ax:");
+//    Serial.print(ax);
+//    Serial.print(",");
+//    Serial.print("ay:");
+//    Serial.print(ay);
+//    Serial.print(",");
+//    Serial.print("az:");
+//    Serial.println((az));
   filter.update(gx, gy, gz, ax, ay, az);
 
   float pitch = float(filter.pitch());
@@ -252,7 +271,15 @@ void update_imu()
 
   float v[3] = { ax, ay, az };
 
+
+
   filter.projectVector( true, v );
+
+//            Serial.print(v[0] );
+//        Serial.print( "," );
+//        Serial.print(v[1] );
+//        Serial.print( "," );
+//        Serial.println(v[2] );
 
   acc_bias[0] = (1.0-bias_gain)*acc_bias[0] + bias_gain*v[0];
   acc_bias[1] = (1.0-bias_gain)*acc_bias[1] + bias_gain*v[1];
@@ -260,13 +287,17 @@ void update_imu()
 
   angle_bias[0] = (1.0-bias_gain)*angle_bias[0] + bias_gain*pitch;
   angle_bias[1] = (1.0-bias_gain)*angle_bias[1] + bias_gain*roll;
-
+//        Serial.print(v[0]-acc_bias[0] );
+//        Serial.print( "," );
+//        Serial.print(v[1]-acc_bias[1] );
+//        Serial.print( "," );
+//        Serial.println(v[2]-acc_bias[2] );
 
   imu_data[0] = v[0]-acc_bias[0];
   imu_data[1] = v[1]-acc_bias[1];
   imu_data[2] = v[2]-acc_bias[2];
-  imu_data[4] = pitch-angle_bias[0];
-  imu_data[5] = roll-angle_bias[0];
+  imu_data[3] = pitch-angle_bias[0];
+  imu_data[4] = roll-angle_bias[1];
 
 }
 void output_imu()
@@ -274,24 +305,26 @@ void output_imu()
 
     
 
-    
-    if (GPS.hour < 10) { server.print('0'); }
-    server.print(GPS.hour, DEC); server.print(':');
-    if (GPS.minute < 10) { server.print('0'); }
-    server.print(GPS.minute, DEC); server.print(':');
-    if (GPS.seconds < 10) { server.print('0'); }
-    server.print(GPS.seconds, DEC); server.print('.');
-    if (GPS.milliseconds < 10) {
-      server.print("00");
-    } else if (GPS.milliseconds > 9 && GPS.milliseconds < 100) {
-      server.print("0");
+    if (GPS_ON)
+    {    
+      if (GPS.hour < 10) { server.print('0'); }
+      server.print(GPS.hour, DEC); server.print(':');
+      if (GPS.minute < 10) { server.print('0'); }
+      server.print(GPS.minute, DEC); server.print(':');
+      if (GPS.seconds < 10) { server.print('0'); }
+      server.print(GPS.seconds, DEC); server.print('.');
+      if (GPS.milliseconds < 10) {
+        server.print("00");
+      } else if (GPS.milliseconds > 9 && GPS.milliseconds < 100) {
+        server.print("0");
+      }
+      server.print(GPS.milliseconds);
+      server.print(",");
+      server.print(GPS.latitude);
+      server.print(",");
+      server.print(GPS.longitude);
+      server.print(",");
     }
-    server.print(GPS.milliseconds);
-    server.print(",");
-    server.print(GPS.latitude);
-    server.print(",");
-    server.print(GPS.longitude);
-    server.print(",");
     server.print(imu_data[0]);
     server.print(",");
     server.print(imu_data[1]);
