@@ -4,8 +4,14 @@
 #include <WiFiNINA.h>
 #include <Wire.h>
 #include "ArduinoLowPower.h"
+#include "WDTZero.h"
 
 #define GPS_I2C_ADDRESS 0x10
+
+#define PMTK_ALWAYS_LOCATE "$PMTK225,9*22" ///< 115200 bps
+#define PMTK_FULL_POWER "$PMTK225,0*2B" ///< 115200 bps
+#define PMTK_ALWAYS_LOCATE_8 "$PMTK225,8*23" ///< 115200 bps
+
 
 #include <Adafruit_GPS.h>
 Adafruit_GPS GPS(&Wire);
@@ -45,6 +51,7 @@ char pass[13];
 
 
 RTCZero rtc;
+WDTZero wdt; 
 
 int status = WL_IDLE_STATUS;
 
@@ -138,6 +145,7 @@ void setup()
   if (!GPS.begin(GPS_I2C_ADDRESS)) 
   {
     Serial.println("ERROR: GPS");
+
     while (true)
     {
       digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
@@ -147,7 +155,13 @@ void setup()
     }
   }
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
+//  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
+  
+   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_100_MILLIHERTZ);
+    GPS.sendCommand(PMTK_API_SET_FIX_CTL_100_MILLIHERTZ);
+
+
+
   Serial.println("GPS setup");
 
 
@@ -175,7 +189,6 @@ const unsigned long IMUEventInterval = 200; // 200 milliseconds so we record the
 unsigned short imu_counter = 0; // keep track of the sequence of readings in a 10s batch
 const unsigned short imu_length = 50; // 10s batch at 5hz gives use 50 readings in a batch
 
-//WiFiClient client;
 void loop() 
 {
   
@@ -188,6 +201,7 @@ void loop()
       return;
     }
 
+  wdt.clear();
   
   unsigned long currentTime = millis();  
 
@@ -260,26 +274,18 @@ bool check_time()
 {
   uint8_t hour = rtc.getHours();
   uint8_t day = rtc.getDay();
+  if ((rtc.getMinutes()) % 2 != 0) return true;
+
+  // each collar is active once every 3 days
+  if ((day + COLLAR_ID) % 3 != 0) return false;
+
+  if (hour==8) return true;
+  if (hour==9) return true;
+  if (hour==10) return true;
+  if (hour==12) return true;
+  if (hour==14) return true;
+  if (hour==16) return true;
   
-  if (rtc.getMinutes()%2==0)
-  {
-    digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level) 
-    delay(10000);                       // wait for a second
-    digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-    return true;
-  }
-
-  // if day + COLLAR_ID % 3 != 0 return false
-  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(1000);                       // wait for a second
-  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-  delay(1000);
-
-  Serial.print(rtc.getHours());
-  Serial.print(":");
-  Serial.print(rtc.getMinutes());
-  Serial.print(":");
-  Serial.println(rtc.getSeconds());
   return false;
 }
 
@@ -294,9 +300,9 @@ void update_time()
 void deactivate()
 {
   WiFi.end();
-  //watchdog off
   GPS.standby();
   active_mode=false;
+  wdt.setup(WDT_OFF);  //watchdog off
 }
 
 void activate()
@@ -311,8 +317,8 @@ void activate()
   
   printWifiStatus();
 
-      // watchdog on
-
+  // watchdog on
+  wdt.setup(WDT_SOFTCYCLE8S);  // initialize WDT-softcounter refesh cycle on 8sec interval
   icm.getEvent(&accel, &gyro, &temp);
   float ax = float(accel.acceleration.x);
   float ay = float(accel.acceleration.y);
