@@ -302,6 +302,11 @@ bool check_time()
   // debug
   if (hour==17) return true;
   if (hour==18) return true;
+  if (hour==19) return true;
+  if (hour==20) return true;
+  if (hour==21) return true;
+  if (hour==22) return true;
+
 
 
   return false;
