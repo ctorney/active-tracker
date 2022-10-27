@@ -1,5 +1,8 @@
 
 
+uint8_t COLLAR_ID = 1;
+
+
 #include <SPI.h>
 #include <WiFiNINA.h>
 #include <Wire.h>
@@ -8,10 +11,11 @@
 
 #define GPS_I2C_ADDRESS 0x10
 
-#define PMTK_ALWAYS_LOCATE "$PMTK225,9*22" ///< 115200 bps
-#define PMTK_FULL_POWER "$PMTK225,0*2B" ///< 115200 bps
-#define PMTK_ALWAYS_LOCATE_8 "$PMTK225,8*23" ///< 115200 bps
-
+//#define PMTK_ALWAYS_LOCATE "$PMTK225,9*22" ///< 115200 bps
+//#define PMTK_FULL_POWER "$PMTK225,0*2B" ///< 115200 bps
+//#define PMTK_ALWAYS_LOCATE_8 "$PMTK225,8*23" ///< 115200 bps
+#define PMTK_PERIODIC "$PMTK225,1,4000,120000,4000,120000*16"
+//#define PMTK_BACKUP "$PMTK225,4*2F"
 
 #include <Adafruit_GPS.h>
 Adafruit_GPS GPS(&Wire);
@@ -41,7 +45,6 @@ float imu_data[5];
 
 constexpr float bias_gain = 0.00001;     // averaging decay rate - should be very low.
 
-uint8_t COLLAR_ID = 1;
 
 #define SECRET_SSID "WCOLLAR"
 #define SECRET_PASS "wcollar"
@@ -60,6 +63,7 @@ WiFiServer server(23);
 bool alreadyConnected = false; // whether or not a client has connected recently
 bool active_mode = false;
 bool first_fix = false;
+bool gps_on=true; //switch off the gps once we have the time
 
 void setup() 
 {
@@ -156,12 +160,12 @@ void setup()
   }
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
 //  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
-  
+  GPS.sendCommand(PMTK_PERIODIC);
+
    GPS.sendCommand(PMTK_SET_NMEA_UPDATE_100_MILLIHERTZ);
-    GPS.sendCommand(PMTK_API_SET_FIX_CTL_100_MILLIHERTZ);
+   GPS.sendCommand(PMTK_API_SET_FIX_CTL_100_MILLIHERTZ);
 
-
-
+//GPS.sendCommand(PMTK_BACKUP);
   Serial.println("GPS setup");
 
 
@@ -174,7 +178,7 @@ void setup()
 
   // debug
   const byte seconds = 0;
-  const byte minutes = 55;
+  const byte minutes = 59;
   const byte hours = 16;
 
   rtc.setHours(hours);
@@ -235,14 +239,8 @@ void loop()
     update_imu();
     send_imu = true;
   }
-  char c = GPS.read();
-  if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
-  if (!first_fix)
-    if (GPS.fix)
-    {
-      first_fix=true;
-      update_time();
-    }
+
+  if (gps_on) process_gps();
   
   // check for a new client:
   WiFiClient client = server.available();
@@ -283,6 +281,24 @@ void loop()
   
 }
 
+
+void process_gps()
+{
+  char c = GPS.read();
+  if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
+//      Serial.print("Satellites: "); Serial.println((int)GPS.satellites);
+  if ((!first_fix) && (GPS.fix))
+  {
+        first_fix=true;
+        update_time();
+        GPS.standby();
+        gps_on=false;
+  }
+  
+      
+   
+}
+
 bool check_time()
 {
   uint8_t hour = rtc.getHours();
@@ -306,6 +322,11 @@ bool check_time()
   if (hour==20) return true;
   if (hour==21) return true;
   if (hour==22) return true;
+  if (hour==23) return true;
+  if (hour==24) return true;
+  if (hour==1) return true;
+  if (hour==2) return true;
+
 
 
 
@@ -317,13 +338,14 @@ void update_time()
   // adjust for UTC
   rtc.setTime(GPS.hour+3, GPS.minute, GPS.seconds);
   rtc.setDate(GPS.day, GPS.month, GPS.year);
+  Serial.println("setting time");
 }
 
 
 void deactivate()
 {
   WiFi.end();
-  GPS.standby();
+  
   active_mode=false;
   wdt.setup(WDT_OFF);  //watchdog off
 }
@@ -340,8 +362,6 @@ void activate()
   
   printWifiStatus();
 
-  // watchdog on
-  wdt.setup(WDT_SOFTCYCLE8S);  // initialize WDT-softcounter refesh cycle on 8sec interval
   icm.getEvent(&accel, &gyro, &temp);
   float ax = float(accel.acceleration.x);
   float ay = float(accel.acceleration.y);
@@ -350,9 +370,19 @@ void activate()
   filter.setup( ax,ay,az);   
   imu_counter=0;
 
-  first_fix = false;
+//  first_fix = false;
+
+//  Serial.println("WAKE UP GPS!!!!!!!!!!!!!!!!!!!");
+//  GPS.wakeup();
+//GPS.sendCommand(PMTK_ALWAYS_LOCATE_8);
+
+
+  
   previousConnectionTime = millis();
   previousIMUTime = millis();
+
+  // watchdog on
+  wdt.setup(WDT_SOFTCYCLE8S);  // initialize WDT-softcounter refesh cycle on 8sec interval
 
 }
 
@@ -405,8 +435,8 @@ void output_imu()
   server.print(minute, DEC); server.print(':');
   if (second < 10) { server.print('0'); }
   server.print(second, DEC); server.print(',');
-  server.print(GPS.latitude); server.print(",");
-  server.print(GPS.longitude); server.print(",");
+//  server.print(GPS.latitude); server.print(",");
+//  server.print(GPS.longitude); server.print(",");
   server.print(imu_counter); server.print(","); server.print(imu_data[0]); server.print(","); server.print(imu_data[1]);
   server.print(","); server.print(imu_data[2]); server.print(","); server.print(imu_data[3]); server.print(",");
   server.print(imu_data[4]);server.print(",");server.println(imu_data[0]+imu_data[1]+imu_data[2]+imu_data[3]+imu_data[4]);
