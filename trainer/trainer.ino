@@ -1,28 +1,27 @@
 
 
-uint8_t COLLAR_ID = 1;
-
+uint8_t COLLAR_ID = 2;
 
 #include <SPI.h>
 #include <WiFiNINA.h>
 #include <Wire.h>
-#include "ArduinoLowPower.h"
 #include "WDTZero.h"
-
-#define GPS_I2C_ADDRESS 0x10
-
-//#define PMTK_ALWAYS_LOCATE "$PMTK225,9*22" ///< 115200 bps
-//#define PMTK_FULL_POWER "$PMTK225,0*2B" ///< 115200 bps
-//#define PMTK_ALWAYS_LOCATE_8 "$PMTK225,8*23" ///< 115200 bps
-#define PMTK_PERIODIC "$PMTK225,1,4000,120000,4000,120000*16"
-//#define PMTK_BACKUP "$PMTK225,4*2F"
-
 #include <Adafruit_GPS.h>
-Adafruit_GPS GPS(&Wire);
 
 #include <Adafruit_ICM20X.h>
 #include <Adafruit_ICM20649.h>
 #include <Adafruit_Sensor.h>
+
+#include <RTCZero.h>
+#include <imuFilter.h>
+
+
+#define GPS_I2C_ADDRESS 0x10
+#define PMTK_PERIODIC "$PMTK225,1,4000,120000,4000,120000*16"
+#define SECRET_SSID "WCOLLAR"
+#define SECRET_PASS "wcollar"
+
+Adafruit_GPS GPS(&Wire);
 
 Adafruit_ICM20649 icm;
 
@@ -30,9 +29,10 @@ sensors_event_t accel;
 sensors_event_t gyro;
 sensors_event_t temp;
 
-#include <RTCZero.h>
+RTCZero rtc;
+WDTZero wdt; 
 
-#include <imuFilter.h>
+WiFiServer server(23);
 
 constexpr float GAIN = 0.75;     // Fusion gain determines response of heading correction with respect to gravity.
 imuFilter <&GAIN> filter;
@@ -46,24 +46,25 @@ float imu_data[5];
 constexpr float bias_gain = 0.00001;     // averaging decay rate - should be very low.
 
 
-#define SECRET_SSID "WCOLLAR"
-#define SECRET_PASS "wcollar"
-
 char ssid[9];
 char pass[9];
 
-
-RTCZero rtc;
-WDTZero wdt; 
-
 int status = WL_IDLE_STATUS;
 
-WiFiServer server(23);
 
 bool alreadyConnected = false; // whether or not a client has connected recently
 bool active_mode = false;
 bool first_fix = false;
 bool gps_on=true; //switch off the gps once we have the time
+
+
+unsigned long previousIMUTime = 0;  
+unsigned long previousConnectionTime = 0;  
+const unsigned long connectionWait = 1000*60*10; // switch off after 10 minutes of no connection
+
+const unsigned long IMUEventInterval = 200; // 200 milliseconds so we record the IMU data at 5hz
+unsigned short imu_counter = 0; // keep track of the sequence of readings in a 10s batch
+const unsigned short imu_length = 50; // 10s batch at 5hz gives use 50 readings in a batch
 
 void setup() 
 {
@@ -159,32 +160,28 @@ void setup()
     }
   }
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
-//  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
+
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_100_MILLIHERTZ);
+  GPS.sendCommand(PMTK_API_SET_FIX_CTL_100_MILLIHERTZ);
   GPS.sendCommand(PMTK_PERIODIC);
 
-   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_100_MILLIHERTZ);
-   GPS.sendCommand(PMTK_API_SET_FIX_CTL_100_MILLIHERTZ);
-
-//GPS.sendCommand(PMTK_BACKUP);
   Serial.println("GPS setup");
 
 
-  
+  rtc.begin();
+  rtc.setAlarmTime(00,00,00);
+  rtc.enableAlarm(rtc.MATCH_MMSS);
 
-
-   rtc.begin();
-   rtc.setAlarmTime(00,00,00);
-   rtc.enableAlarm(rtc.MATCH_MMSS);
-
-  // debug
   const byte seconds = 0;
-  const byte minutes = 59;
-  const byte hours = 16;
+  const byte minutes = 55;
+  const byte hours = 7;
 
+  const byte day = 30 - COLLAR_ID;
+
+  rtc.setDay(day);
   rtc.setHours(hours);
   rtc.setMinutes(minutes);
   rtc.setSeconds(seconds);
-
 
   deactivate();
   for (int i = 0; i < 10; i++) 
@@ -197,14 +194,6 @@ void setup()
   rtc.standbyMode();
 
 }
-
-unsigned long previousIMUTime = 0;  
-unsigned long previousConnectionTime = 0;  
-const unsigned long connectionWait = 1000*60*10; // switch off after 10 minutes of no connection
-
-const unsigned long IMUEventInterval = 200; // 200 milliseconds so we record the IMU data at 5hz
-unsigned short imu_counter = 0; // keep track of the sequence of readings in a 10s batch
-const unsigned short imu_length = 50; // 10s batch at 5hz gives use 50 readings in a batch
 
 void loop() 
 {
@@ -229,8 +218,6 @@ void loop()
     return;
   }
   
-  //Serial.println(WiFi.status());
-
   bool send_imu = false;
   
   if (currentTime - previousIMUTime >= IMUEventInterval) 
@@ -286,11 +273,12 @@ void process_gps()
 {
   char c = GPS.read();
   if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
-//      Serial.print("Satellites: "); Serial.println((int)GPS.satellites);
   if ((!first_fix) && (GPS.fix))
   {
         first_fix=true;
-        update_time();
+        // adjust for UTC
+        rtc.setTime(GPS.hour+3, GPS.minute, GPS.seconds);
+        rtc.setDate(GPS.day, GPS.month, GPS.year);
         GPS.standby();
         gps_on=false;
   }
@@ -306,8 +294,9 @@ bool check_time()
   //if ((rtc.getMinutes()) % 2 != 0) return true;
 
   // each collar is active once every 3 days
-  // if ((day + COLLAR_ID) % 3 != 0) return false;
+  if ((day + COLLAR_ID) % 3 != 0) return false;
 
+  if (hour==7) return true;
   if (hour==8) return true;
   if (hour==9) return true;
   if (hour==10) return true;
@@ -315,37 +304,13 @@ bool check_time()
   if (hour==14) return true;
   if (hour==16) return true;
   
-  // debug
-  if (hour==17) return true;
-  if (hour==18) return true;
-  if (hour==19) return true;
-  if (hour==20) return true;
-  if (hour==21) return true;
-  if (hour==22) return true;
-  if (hour==23) return true;
-  if (hour==24) return true;
-  if (hour==1) return true;
-  if (hour==2) return true;
-
-
-
-
   return false;
-}
-
-void update_time()
-{
-  // adjust for UTC
-  rtc.setTime(GPS.hour+3, GPS.minute, GPS.seconds);
-  rtc.setDate(GPS.day, GPS.month, GPS.year);
-  Serial.println("setting time");
 }
 
 
 void deactivate()
 {
   WiFi.end();
-  
   active_mode=false;
   wdt.setup(WDT_OFF);  //watchdog off
 }
@@ -360,8 +325,6 @@ void activate()
   // start the server
   server.begin();
   
-  printWifiStatus();
-
   icm.getEvent(&accel, &gyro, &temp);
   float ax = float(accel.acceleration.x);
   float ay = float(accel.acceleration.y);
@@ -369,14 +332,6 @@ void activate()
     
   filter.setup( ax,ay,az);   
   imu_counter=0;
-
-//  first_fix = false;
-
-//  Serial.println("WAKE UP GPS!!!!!!!!!!!!!!!!!!!");
-//  GPS.wakeup();
-//GPS.sendCommand(PMTK_ALWAYS_LOCATE_8);
-
-
   
   previousConnectionTime = millis();
   previousIMUTime = millis();
@@ -421,6 +376,7 @@ void update_imu()
   imu_counter = imu_counter % imu_length;
 
 }
+
 void output_imu()
 {
   
@@ -435,27 +391,8 @@ void output_imu()
   server.print(minute, DEC); server.print(':');
   if (second < 10) { server.print('0'); }
   server.print(second, DEC); server.print(',');
-//  server.print(GPS.latitude); server.print(",");
-//  server.print(GPS.longitude); server.print(",");
   server.print(imu_counter); server.print(","); server.print(imu_data[0]); server.print(","); server.print(imu_data[1]);
   server.print(","); server.print(imu_data[2]); server.print(","); server.print(imu_data[3]); server.print(",");
   server.print(imu_data[4]);server.print(",");server.println(imu_data[0]+imu_data[1]+imu_data[2]+imu_data[3]+imu_data[4]);
 
-}
-
-void printWifiStatus() {
-  // print the SSID of the network you're attached to:
-  Serial.print("SSID: ");
-  Serial.println(WiFi.SSID());
-
-  // print your board's IP address:
-  IPAddress ip = WiFi.localIP();
-  Serial.print("IP Address: ");
-  Serial.println(ip);
-
-  // print the received signal strength:
-  long rssi = WiFi.RSSI();
-  Serial.print("signal strength (RSSI):");
-  Serial.print(rssi);
-  Serial.println(" dBm");
 }
