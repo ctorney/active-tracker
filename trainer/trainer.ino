@@ -388,13 +388,18 @@ void update_imu()
 }
 void output_imu()
 {
+  
+  uint8_t hour = rtc.getHours();
+  uint8_t minute = rtc.getMinutes();
+  uint8_t second = rtc.getSeconds();
+    
 
-  if (GPS.hour < 10) { server.print('0'); }
-  server.print(GPS.hour, DEC); server.print(':');
-  if (GPS.minute < 10) { server.print('0'); }
-  server.print(GPS.minute, DEC); server.print(':');
-  if (GPS.seconds < 10) { server.print('0'); }
-  server.print(GPS.seconds, DEC); server.print(',');
+  if (hour < 10) { server.print('0'); }
+  server.print(hour, DEC); server.print(':');
+  if (minute < 10) { server.print('0'); }
+  server.print(minute, DEC); server.print(':');
+  if (second < 10) { server.print('0'); }
+  server.print(second, DEC); server.print(',');
   server.print(GPS.latitude); server.print(",");
   server.print(GPS.longitude); server.print(",");
   server.print(imu_counter); server.print(","); server.print(imu_data[0]); server.print(","); server.print(imu_data[1]);
