@@ -37,12 +37,11 @@ constexpr float bias_gain = 0.00001;     // averaging decay rate - should be ver
 
 uint8_t COLLAR_ID = 1;
 
-// Both SSID and password must be 8 characters or longer
 #define SECRET_SSID "WILDEBEEST_"
 #define SECRET_PASS "WILDEBEEST_"
 
-char ssid[] = SECRET_SSID + String(COLLAR_ID,DEC);  
-char pass[] = SECRET_PASS + String(COLLAR_ID,DEC); 
+char ssid[13];
+char pass[13];
 
 
 RTCZero rtc;
@@ -55,8 +54,13 @@ bool alreadyConnected = false; // whether or not a client has connected recently
 bool active_mode = false;
 bool first_fix = false;
 
-void setup() {
-  
+void setup() 
+{
+  String strSSID = SECRET_SSID + String(COLLAR_ID,DEC);
+  String strPASS = SECRET_PASS + String(COLLAR_ID,DEC);
+
+  strSSID.toCharArray(ssid, 13);
+  strPASS.toCharArray(pass, 13);
   
   //Initialize serial and wait for port to open:
   Serial.begin(9600);
@@ -159,14 +163,13 @@ void setup() {
 
 
 
-  WiFi.end();
-  
-//  LowPower.deepSleep(100000);
+  deactivate();
+    
 }
 
 unsigned long previousIMUTime = 0;  
 unsigned long previousConnectionTime = 0;  
-const unsigned long connectionWait = 1000*60*10; // switch off after 10 minutes of no connection
+const unsigned long connectionWait = 1000*30;// 30 seconds for DEBUGGING!!! 1000*60*10; // switch off after 10 minutes of no connection
 
 const unsigned long IMUEventInterval = 200; // 200 milliseconds so we record the IMU data at 5hz
 unsigned short imu_counter = 0; // keep track of the sequence of readings in a 10s batch
@@ -175,7 +178,7 @@ const unsigned short imu_length = 50; // 10s batch at 5hz gives use 50 readings 
 //WiFiClient client;
 void loop() 
 {
-
+  
   if (active_mode==false)
     if (check_time())  // between operating hours and right day 7am to 7pm 
       activate();
@@ -256,11 +259,27 @@ void loop()
 bool check_time()
 {
   uint8_t hour = rtc.getHours();
-  uint8_t  day = rtc.getDay();
+  uint8_t day = rtc.getDay();
   
+  if (rtc.getMinutes()%2==0)
+  {
+    digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level) 
+    delay(10000);                       // wait for a second
+    digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+    return true;
+  }
+
   // if day + COLLAR_ID % 3 != 0 return false
-  Serial.println(hour);
-  Serial.println(day);
+  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+  delay(1000);                       // wait for a second
+  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+  delay(1000);
+
+  Serial.print(rtc.getHours());
+  Serial.print(":");
+  Serial.print(rtc.getMinutes());
+  Serial.print(":");
+  Serial.println(rtc.getSeconds());
   return false;
 }
 
@@ -275,18 +294,14 @@ void update_time()
 void deactivate()
 {
   WiFi.end();
-  active_mode=false;
   //watchdog off
-
-  WiFi.lowPowerMode();
   GPS.standby();
-  
+  active_mode=false;
 }
 
 void activate()
 {
-   active_mode=true;
-
+  active_mode=true;
 
   // start the access point
   status = WiFi.beginAP(ssid, pass);
