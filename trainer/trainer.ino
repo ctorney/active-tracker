@@ -43,11 +43,11 @@ constexpr float bias_gain = 0.00001;     // averaging decay rate - should be ver
 
 uint8_t COLLAR_ID = 1;
 
-#define SECRET_SSID "WILDEBEEST_"
-#define SECRET_PASS "WILDEBEEST_"
+#define SECRET_SSID "WCOLLAR"
+#define SECRET_PASS "wcollar"
 
-char ssid[13];
-char pass[13];
+char ssid[9];
+char pass[9];
 
 
 RTCZero rtc;
@@ -66,8 +66,8 @@ void setup()
   String strSSID = SECRET_SSID + String(COLLAR_ID,DEC);
   String strPASS = SECRET_PASS + String(COLLAR_ID,DEC);
 
-  strSSID.toCharArray(ssid, 13);
-  strPASS.toCharArray(pass, 13);
+  strSSID.toCharArray(ssid, 9);
+  strPASS.toCharArray(pass, 9);
   
   //Initialize serial and wait for port to open:
   Serial.begin(9600);
@@ -169,21 +169,34 @@ void setup()
 
 
    rtc.begin();
-   rtc.setAlarmTime(00,00,10);
-   rtc.enableAlarm(rtc.MATCH_SS);
+   rtc.setAlarmTime(00,00,00);
+   rtc.enableAlarm(rtc.MATCH_MMSS);
 
+  // debug
+  const byte seconds = 0;
+  const byte minutes = 55;
+  const byte hours = 16;
 
-  
-
+  rtc.setHours(hours);
+  rtc.setMinutes(minutes);
+  rtc.setSeconds(seconds);
 
 
   deactivate();
-    
+  for (int i = 0; i < 10; i++) 
+  {
+    digitalWrite(LED_BUILTIN, HIGH);   // 10 flashes indicate success
+    delay(200);                       
+    digitalWrite(LED_BUILTIN, LOW);    
+    delay(200);
+  }
+  rtc.standbyMode();
+
 }
 
 unsigned long previousIMUTime = 0;  
 unsigned long previousConnectionTime = 0;  
-const unsigned long connectionWait = 1000*30;// 30 seconds for DEBUGGING!!! 1000*60*10; // switch off after 10 minutes of no connection
+const unsigned long connectionWait = 1000*60*10; // switch off after 10 minutes of no connection
 
 const unsigned long IMUEventInterval = 200; // 200 milliseconds so we record the IMU data at 5hz
 unsigned short imu_counter = 0; // keep track of the sequence of readings in a 10s batch
@@ -274,10 +287,10 @@ bool check_time()
 {
   uint8_t hour = rtc.getHours();
   uint8_t day = rtc.getDay();
-  if ((rtc.getMinutes()) % 2 != 0) return true;
+  //if ((rtc.getMinutes()) % 2 != 0) return true;
 
   // each collar is active once every 3 days
-  if ((day + COLLAR_ID) % 3 != 0) return false;
+  // if ((day + COLLAR_ID) % 3 != 0) return false;
 
   if (hour==8) return true;
   if (hour==9) return true;
@@ -286,6 +299,11 @@ bool check_time()
   if (hour==14) return true;
   if (hour==16) return true;
   
+  // debug
+  if (hour==17) return true;
+  if (hour==18) return true;
+
+
   return false;
 }
 
@@ -381,7 +399,7 @@ void output_imu()
   server.print(GPS.longitude); server.print(",");
   server.print(imu_counter); server.print(","); server.print(imu_data[0]); server.print(","); server.print(imu_data[1]);
   server.print(","); server.print(imu_data[2]); server.print(","); server.print(imu_data[3]); server.print(",");
-  server.println(imu_data[4]);
+  server.print(imu_data[4]);server.print(",");server.println(imu_data[0]+imu_data[1]+imu_data[2]+imu_data[3]+imu_data[4]);
 
 }
 
