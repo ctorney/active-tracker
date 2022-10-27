@@ -35,14 +35,14 @@ float imu_data[5];
 
 constexpr float bias_gain = 0.00001;     // averaging decay rate - should be very low.
 
-#define COLLAR_ID 1
+uint8_t COLLAR_ID = 1;
 
 // Both SSID and password must be 8 characters or longer
-#define SECRET_SSID "WILDEBEEST"
-#define SECRET_PASS "WILDEBEEST"
+#define SECRET_SSID "WILDEBEEST_"
+#define SECRET_PASS "WILDEBEEST_"
 
-char ssid[] = SECRET_SSID;  
-char pass[] = SECRET_PASS;  
+char ssid[] = SECRET_SSID + String(COLLAR_ID,DEC);  
+char pass[] = SECRET_PASS + String(COLLAR_ID,DEC); 
 
 
 RTCZero rtc;
@@ -51,9 +51,7 @@ int status = WL_IDLE_STATUS;
 
 WiFiServer server(23);
 
-boolean alreadyConnected = false; // whether or not the client was connected previously
-bool GPS_ON = true;
-
+bool alreadyConnected = false; // whether or not a client has connected recently
 bool active_mode = false;
 bool first_fix = false;
 
@@ -182,7 +180,10 @@ void loop()
     if (check_time())  // between operating hours and right day 7am to 7pm 
       activate();
     else
+    {
+      rtc.standbyMode();
       return;
+    }
 
   
   unsigned long currentTime = millis();  
@@ -190,6 +191,7 @@ void loop()
   if (currentTime - previousConnectionTime >= connectionWait) 
   {
     deactivate();
+    rtc.standbyMode();
     return;
   }
   
@@ -253,17 +255,19 @@ void loop()
 
 bool check_time()
 {
-  int hour = rtc.getHours();
-  int day = rtc.getDay();
+  uint8_t hour = rtc.getHours();
+  uint8_t  day = rtc.getDay();
+  
+  // if day + COLLAR_ID % 3 != 0 return false
   Serial.println(hour);
   Serial.println(day);
-  return true;
+  return false;
 }
 
 void update_time()
 {
   // adjust for UTC
-  rtc.setTime(GPS.hour, GPS.minute, GPS.seconds);
+  rtc.setTime(GPS.hour+3, GPS.minute, GPS.seconds);
   rtc.setDate(GPS.day, GPS.month, GPS.year);
 }
 
@@ -276,7 +280,7 @@ void deactivate()
 
   WiFi.lowPowerMode();
   GPS.standby();
-  rtc.standbyMode();
+  
 }
 
 void activate()
