@@ -112,6 +112,8 @@ void setup()
     }
   }
 
+  WiFi.end();
+
   // wait a second for connection:
   Serial.println("wifi setup");
   delay(500);
@@ -161,9 +163,9 @@ void setup()
   }
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
 
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_100_MILLIHERTZ);
-  GPS.sendCommand(PMTK_API_SET_FIX_CTL_100_MILLIHERTZ);
-  GPS.sendCommand(PMTK_PERIODIC);
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
+//  GPS.sendCommand(PMTK_API_SET_FIX_CTL_100_MILLIHERTZ);
+//  GPS.sendCommand(PMTK_PERIODIC);
 
   Serial.println("GPS setup");
 
@@ -172,9 +174,9 @@ void setup()
   rtc.setAlarmTime(00,00,00);
   rtc.enableAlarm(rtc.MATCH_MMSS);
 
-  const byte seconds = 0;
-  const byte minutes = 55;
-  const byte hours = 7;
+  const byte seconds = 40;
+  const byte minutes = 59;
+  const byte hours = 4;
 
   const byte day = 30 - COLLAR_ID;
 
@@ -183,7 +185,7 @@ void setup()
   rtc.setMinutes(minutes);
   rtc.setSeconds(seconds);
 
-  deactivate();
+//  deactivate();
   for (int i = 0; i < 10; i++) 
   {
     digitalWrite(LED_BUILTIN, HIGH);   // 10 flashes indicate success
@@ -191,8 +193,11 @@ void setup()
     digitalWrite(LED_BUILTIN, LOW);    
     delay(200);
   }
-  rtc.standbyMode();
 
+    Serial.println("RTC setup");
+
+  rtc.standbyMode();
+  
 }
 
 void loop() 
@@ -248,7 +253,6 @@ void loop()
     }
     else   
     {
-      Serial.println("We have lost the client");
       client.flush();
       client.stop();
       alreadyConnected = false;
@@ -271,17 +275,22 @@ void loop()
 
 void process_gps()
 {
-  char c = GPS.read();
-  if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
-  if ((!first_fix) && (GPS.fix))
-  {
-        first_fix=true;
-        // adjust for UTC
-        rtc.setTime(GPS.hour+3, GPS.minute, GPS.seconds);
-        rtc.setDate(GPS.day, GPS.month, GPS.year);
-        GPS.standby();
-        gps_on=false;
+  if (GPS.available()) {
+    char c = GPS.read();
+//    Serial.write(c);
   }
+//  char c = GPS.read();
+  if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
+//  if (!first_fix) 
+    if (GPS.fix)
+    {
+      first_fix=true;
+      // set to UTC
+      rtc.setTime(GPS.hour, GPS.minute, GPS.seconds);
+      rtc.setDate(GPS.day, GPS.month, GPS.year);
+      //GPS.standby();
+      //gps_on=false;
+    }
   
       
    
@@ -291,18 +300,19 @@ bool check_time()
 {
   uint8_t hour = rtc.getHours();
   uint8_t day = rtc.getDay();
-  //if ((rtc.getMinutes()) % 2 != 0) return true;
 
+  Serial.println("checking time");
   // each collar is active once every 3 days
   if ((day + COLLAR_ID) % 3 != 0) return false;
 
-  if (hour==7) return true;
-  if (hour==8) return true;
-  if (hour==9) return true;
-  if (hour==10) return true;
-  if (hour==12) return true;
-  if (hour==14) return true;
-  if (hour==16) return true;
+  // adjust for UTC - TZ is 3 hours ahead
+  if (hour==7-3) return true;
+  if (hour==8-3) return true;
+  if (hour==9-3) return true;
+  if (hour==10-3) return true;
+  if (hour==12-3) return true;
+  if (hour==14-3) return true;
+  if (hour==16-3) return true;
   
   return false;
 }
@@ -310,13 +320,24 @@ bool check_time()
 
 void deactivate()
 {
+
+  
   WiFi.end();
   active_mode=false;
   wdt.setup(WDT_OFF);  //watchdog off
+
+  if (first_fix) 
+    {
+      GPS.standby();
+      gps_on=false;
+    }
+  
 }
 
 void activate()
 {
+  digitalWrite(LED_BUILTIN, HIGH);   // 10 flashes indicate success
+  
   active_mode=true;
 
   // start the access point
