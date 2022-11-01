@@ -326,7 +326,7 @@ void deactivate()
   active_mode=false;
   wdt.setup(WDT_OFF);  //watchdog off
 
-  if (first_fix) 
+  if (first_fix && gps_on)
     {
       GPS.standby();
       gps_on=false;
@@ -336,7 +336,7 @@ void deactivate()
 
 void activate()
 {
-  digitalWrite(LED_BUILTIN, HIGH);   // 10 flashes indicate success
+  
   
   active_mode=true;
 
