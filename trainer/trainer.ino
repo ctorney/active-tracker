@@ -1,6 +1,6 @@
 
 
-uint8_t COLLAR_ID = 2;
+uint8_t COLLAR_ID = 1;
 
 #include <SPI.h>
 #include <WiFiNINA.h>
@@ -174,8 +174,8 @@ void setup()
   rtc.setAlarmTime(00,00,00);
   rtc.enableAlarm(rtc.MATCH_MMSS);
 
-  const byte seconds = 40;
-  const byte minutes = 59;
+  const byte seconds = 00;
+  const byte minutes = 45;
   const byte hours = 4;
 
   const byte day = 30 - COLLAR_ID;
