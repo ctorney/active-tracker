@@ -1,3 +1,8 @@
+
+## todo - shrink solar panel cut
+##      - change pcb holes to pins
+##      - add grippers to lid
+
 from FreeCAD import Base
 import FreeCAD as App
 import BOPTools.JoinFeatures
@@ -647,8 +652,8 @@ doc.removeObject('FullBase2')
 
 
 
-SCREW_HEAD_HEIGHT = 12
-SCREW_HEAD_DIAM = 2.6
+SCREW_HEAD_HEIGHT = 5
+SCREW_HEAD_DIAM = 2.2
 
 RIDER_HOLE_WIDTH = 67
 RIDER_HOLE_LENGTH = 46
@@ -658,7 +663,7 @@ RIDER_HOLE_OFFSET = -5
 ScrewCut1 = doc.addObject("Part::Cylinder","ScrewCut1")
 ScrewCut1.Height = SCREW_HEAD_HEIGHT
 ScrewCut1.Radius = SCREW_HEAD_DIAM/2
-ScrewCut1.Placement = App.Placement(App.Vector(-RIDER_HOLE_LENGTH/2,-RIDER_HOLE_WIDTH/2 -RIDER_HOLE_OFFSET,BASE_FLOOR_HEIGHT-SCREW_HEAD_HEIGHT),App.Rotation(App.Vector(0,1,0),0)) 
+ScrewCut1.Placement = App.Placement(App.Vector(-RIDER_HOLE_LENGTH/2,-RIDER_HOLE_WIDTH/2 -RIDER_HOLE_OFFSET,BASE_FLOOR_HEIGHT-1),App.Rotation(App.Vector(0,1,0),0)) 
 
 
 
@@ -668,7 +673,7 @@ ScrewCut1.Placement = App.Placement(App.Vector(-RIDER_HOLE_LENGTH/2,-RIDER_HOLE_
 ScrewCut2 = doc.addObject("Part::Cylinder","ScrewCut2")
 ScrewCut2.Height = SCREW_HEAD_HEIGHT
 ScrewCut2.Radius = SCREW_HEAD_DIAM/2
-ScrewCut2.Placement = App.Placement(App.Vector(-RIDER_HOLE_LENGTH/2,RIDER_HOLE_WIDTH/2 -RIDER_HOLE_OFFSET,BASE_FLOOR_HEIGHT-SCREW_HEAD_HEIGHT),App.Rotation(App.Vector(0,1,0),0)) 
+ScrewCut2.Placement = App.Placement(App.Vector(-RIDER_HOLE_LENGTH/2,RIDER_HOLE_WIDTH/2 -RIDER_HOLE_OFFSET,BASE_FLOOR_HEIGHT-1),App.Rotation(App.Vector(0,1,0),0)) 
 
 
 
@@ -677,7 +682,7 @@ ScrewCut2.Placement = App.Placement(App.Vector(-RIDER_HOLE_LENGTH/2,RIDER_HOLE_W
 ScrewCut3 = doc.addObject("Part::Cylinder","ScrewCut3")
 ScrewCut3.Height = SCREW_HEAD_HEIGHT
 ScrewCut3.Radius = SCREW_HEAD_DIAM/2
-ScrewCut3.Placement = App.Placement(App.Vector(RIDER_HOLE_LENGTH/2,-RIDER_HOLE_WIDTH/2-RIDER_HOLE_OFFSET,BASE_FLOOR_HEIGHT-SCREW_HEAD_HEIGHT),App.Rotation(App.Vector(0,1,0),0)) 
+ScrewCut3.Placement = App.Placement(App.Vector(RIDER_HOLE_LENGTH/2,-RIDER_HOLE_WIDTH/2-RIDER_HOLE_OFFSET,BASE_FLOOR_HEIGHT-1),App.Rotation(App.Vector(0,1,0),0)) 
 
 
 
@@ -687,62 +692,97 @@ ScrewCut3.Placement = App.Placement(App.Vector(RIDER_HOLE_LENGTH/2,-RIDER_HOLE_W
 ScrewCut4 = doc.addObject("Part::Cylinder","ScrewCut4")
 ScrewCut4.Height = SCREW_HEAD_HEIGHT
 ScrewCut4.Radius = SCREW_HEAD_DIAM/2
-ScrewCut4.Placement = App.Placement(App.Vector(RIDER_HOLE_LENGTH/2,RIDER_HOLE_WIDTH/2-RIDER_HOLE_OFFSET,BASE_FLOOR_HEIGHT-SCREW_HEAD_HEIGHT),App.Rotation(App.Vector(0,1,0),0)) 
+ScrewCut4.Placement = App.Placement(App.Vector(RIDER_HOLE_LENGTH/2,RIDER_HOLE_WIDTH/2-RIDER_HOLE_OFFSET,BASE_FLOOR_HEIGHT-1),App.Rotation(App.Vector(0,1,0),0)) 
 
 
 
-cut = doc.addObject("Part::Cut","Cut")
-cut.Base = FullBase
-cut.Tool = ScrewCut1
-doc.recompute()
-FullBase1 =doc.addObject("Part::Feature","FullBase1")
-FullBase1 .Label="FullBase1"
-FullBase1 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
 
-doc.removeObject(cut.Label)
-doc.removeObject(FullBase.Label)
-
-
-cut = doc.addObject("Part::Cut","Cut")
-cut.Base = FullBase1
-cut.Tool = ScrewCut2
+fusion = doc.addObject("Part::MultiFuse","fusion")
+doc.fusion.Shapes = [FullBase,ScrewCut1,ScrewCut2]
 doc.recompute()
 
-FullBase =doc.addObject("Part::Feature","FullBase")
-FullBase .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+FullBase2 =doc.addObject("Part::Feature","FullBase2")
 
-doc.removeObject(cut.Label)
-doc.removeObject(FullBase1.Label)
+FullBase2 .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
 
+doc.removeObject(fusion.Label)
 
-
-cut = doc.addObject("Part::Cut","Cut")
-cut.Base = FullBase
-cut.Tool = ScrewCut3
-doc.recompute()
-
-FullBase1 =doc.addObject("Part::Feature","FullBase1")
-FullBase1 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
-
-doc.removeObject(cut.Label)
-doc.removeObject(FullBase.Label)
+doc.removeObject('FullBase')
+doc.removeObject('ScrewCut1')
+doc.removeObject('ScrewCut2')
 
 
-cut = doc.addObject("Part::Cut","Cut")
-cut.Base = FullBase1
-cut.Tool = ScrewCut4
+
+fusion = doc.addObject("Part::MultiFuse","fusion")
+doc.fusion.Shapes = [FullBase2,ScrewCut3,ScrewCut4]
 doc.recompute()
 
 FullBase =doc.addObject("Part::Feature","FullBase")
-FullBase .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
 
-doc.removeObject(cut.Label)
-doc.removeObject(FullBase1.Label)
+FullBase .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
 
-doc.removeObject(ScrewCut1.Label)
-doc.removeObject(ScrewCut2.Label)
-doc.removeObject(ScrewCut3.Label)
-doc.removeObject(ScrewCut4.Label)
+doc.removeObject(fusion.Label)
+
+doc.removeObject('FullBase2')
+doc.removeObject('ScrewCut3')
+doc.removeObject('ScrewCut4')
+
+#
+#
+#cut = doc.addObject("Part::Cut","Cut")
+#cut.Base = FullBase
+#cut.Tool = ScrewCut1
+#doc.recompute()
+#FullBase1 =doc.addObject("Part::Feature","FullBase1")
+#FullBase1 .Label="FullBase1"
+#FullBase1 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+#
+#doc.removeObject(cut.Label)
+#doc.removeObject(FullBase.Label)
+#
+#
+#cut = doc.addObject("Part::Cut","Cut")
+#cut.Base = FullBase1
+#cut.Tool = ScrewCut2
+#doc.recompute()
+#
+#FullBase =doc.addObject("Part::Feature","FullBase")
+#FullBase .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+#
+#doc.removeObject(cut.Label)
+#doc.removeObject(FullBase1.Label)
+#
+#
+#
+#cut = doc.addObject("Part::Cut","Cut")
+#cut.Base = FullBase
+#cut.Tool = ScrewCut3
+#doc.recompute()
+#
+#FullBase1 =doc.addObject("Part::Feature","FullBase1")
+#FullBase1 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+#
+#doc.removeObject(cut.Label)
+#doc.removeObject(FullBase.Label)
+#
+#
+#cut = doc.addObject("Part::Cut","Cut")
+#cut.Base = FullBase1
+#cut.Tool = ScrewCut4
+#doc.recompute()
+#
+#FullBase =doc.addObject("Part::Feature","FullBase")
+#FullBase .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+#
+#doc.removeObject(cut.Label)
+#doc.removeObject(FullBase1.Label)
+#
+#
+#doc.removeObject(ScrewCut1.Label)
+#doc.removeObject(ScrewCut2.Label)
+#doc.removeObject(ScrewCut3.Label)
+#doc.removeObject(ScrewCut4.Label)
+
 
 ## cut outs for the lipo wire
 
@@ -851,13 +891,38 @@ cut.Base = FullBase2
 cut.Tool = ellipse3
 doc.recompute()
 
-FullBase =doc.addObject("Part::Feature","FullBase")
-FullBase .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+FullBase3 =doc.addObject("Part::Feature","FullBase3")
+FullBase3 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
 
 doc.removeObject(cut.Label)
 doc.removeObject(FullBase2.Label)
 doc.removeObject(ellipse3.Label)
 
+
+GPSPIN_HEIGHT = 2.0
+GPSPIN_LENGTH = 6
+GPSPIN_WIDTH =  22
+gpspincutbox = doc.addObject("Part::Box", "gpspincutbox")
+gpspincutbox.Length = GPSPIN_LENGTH
+gpspincutbox.Width = GPSPIN_WIDTH
+gpspincutbox.Height = GPSPIN_HEIGHT
+
+gpspincutbox.Placement = App.Placement(App.Vector(-(RIDER_HOLE_LENGTH)/2-1,(RIDER_HOLE_WIDTH)/2-20.5,CHIPBOX_MIN- GPSPIN_HEIGHT ),App.Rotation(App.Vector(0,0,1),0)) 
+#
+
+doc.recompute()
+
+cut = doc.addObject("Part::Cut","Cut")
+cut.Base = FullBase3
+cut.Tool = gpspincutbox
+doc.recompute()
+
+FullBase =doc.addObject("Part::Feature","FullBase")
+FullBase .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject(cut.Label)
+doc.removeObject(FullBase3.Label)
+doc.removeObject(gpspincutbox.Label)
 
 
 
@@ -877,7 +942,7 @@ ScrewCut1.Radius = HEX_NUT_DIAM/2
 ScrewCut1.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,-slt/2 -FRONT_OFFSET ,-50),App.Rotation(App.Vector(1,0,0),SCREW_ANGLE)) 
 
 
-#print(-swt/2+SIDE_OFFSET - swt/2+SIDE_OFFSET)
+
 
 
 ScrewCut2 = doc.addObject("Part::Cylinder","ScrewCut2")
@@ -955,7 +1020,7 @@ baseplate2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
 doc.removeObject(cut.Label)
 doc.removeObject(baseplate2pre2.Label)
 
-#doc.removeObject(ScrewCut1.Label)
+doc.removeObject(ScrewCut1.Label)
 doc.removeObject(ScrewCut2.Label)
 doc.removeObject(ScrewCut3.Label)
 doc.removeObject(ScrewCut4.Label)
@@ -1051,9 +1116,42 @@ doc.removeObject('Fillet')
 doc.removeObject('baseplate')
 
 
+marker1 = doc.addObject("Part::Sphere","marker1")
+doc.marker1.Radius=5.00
+
+doc.marker1.Placement=App.Placement(App.Vector(-26.0,35.0,-11),App.Rotation(App.Vector(1,0,0),0)) 
+doc.marker1.Label='marker1'
+
+
+marker2 = doc.addObject("Part::Sphere","marker2")
+doc.marker2.Radius=5.00
+
+doc.marker2.Placement=App.Placement(App.Vector(-26.0,-35.0,-11),App.Rotation(App.Vector(1,0,0),0)) 
+doc.marker2.Label='marker1'
+doc.recompute()
+
+
+
+
+fusion = doc.addObject("Part::MultiFuse","fusion")
+doc.fusion.Shapes = [baseplate2,marker1,marker2]
+doc.recompute()
+
+baseplate =doc.addObject("Part::Feature","baseplate")
+
+baseplate .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
+
+doc.removeObject(fusion.Label)
+
+doc.removeObject('baseplate2')
+doc.removeObject('marker1')
+doc.removeObject('marker2')
+
+
+
+
 #doc.getObject("mountcutter").Transparency = 60
 
-sys.exit('bye')
 
 ####################################################
 ####################################################
@@ -1515,10 +1613,10 @@ doc.recompute()
 
 
 PanelCutterBox = doc.addObject("Part::Box", "PanelCutterBox")
-PanelCutterBox.Length = PANEL_LENGTH+0.5
-PanelCutterBox.Width = PANEL_WIDTH+0.5
+PanelCutterBox.Length = PANEL_LENGTH
+PanelCutterBox.Width = PANEL_WIDTH
 PanelCutterBox.Height = PANEL_HEIGHT+1
-PanelCutterBox.Placement = App.Placement(App.Vector(-(PANEL_LENGTH+1)/2,-(PANEL_WIDTH+1)/2,MAX_HEIGHT-PANEL_HEIGHT-1),App.Rotation(App.Vector(0,0,1),0)) 
+PanelCutterBox.Placement = App.Placement(App.Vector(-(PANEL_LENGTH)/2,-(PANEL_WIDTH)/2,MAX_HEIGHT-PANEL_HEIGHT-1),App.Rotation(App.Vector(0,0,1),0)) 
 
 doc.recompute()
 cutpanelbox = doc.addObject("Part::Cut","cutpanelbox")
@@ -1534,6 +1632,63 @@ arduinobox3 .Shape=Part.Solid(Part.Shell(cutpanelbox.Shape.Faces))
 doc.removeObject('cutpanelbox')
 doc.removeObject('PanelCutterBox')
 doc.removeObject('arduinobox2')
+
+
+
+
+
+marker1 = doc.addObject("Part::Sphere","marker1")
+doc.marker1.Radius=5.00
+
+doc.marker1.Placement=App.Placement(App.Vector(-30.0,35.0,10),App.Rotation(App.Vector(1,0,0),0)) 
+doc.marker1.Label='marker1'
+
+
+marker2 = doc.addObject("Part::Sphere","marker2")
+doc.marker2.Radius=5.00
+
+doc.marker2.Placement=App.Placement(App.Vector(-30.0,-35.0,10),App.Rotation(App.Vector(1,0,0),0)) 
+doc.marker2.Label='marker1'
+doc.recompute()
+
+
+
+
+fusion = doc.addObject("Part::MultiFuse","fusion")
+doc.fusion.Shapes = [arduinobox3,marker1]
+doc.recompute()
+
+arduinobox2 =doc.addObject("Part::Feature","arduinobox2")
+
+arduinobox2 .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
+
+doc.removeObject(fusion.Label)
+
+
+doc.removeObject('arduinobox3')
+
+
+fusion = doc.addObject("Part::MultiFuse","fusion")
+doc.fusion.Shapes = [arduinobox2,marker2]
+doc.recompute()
+
+arduinobox3 =doc.addObject("Part::Feature","arduinobox3")
+
+arduinobox3 .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
+
+doc.removeObject(fusion.Label)
+
+
+doc.removeObject('arduinobox2')
+doc.removeObject('marker1')
+doc.removeObject('marker2')
+
+doc.recompute()
+
+
+
+
+
 
 # cut out the lipo box
 
@@ -2150,6 +2305,60 @@ baseplate2.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
 doc.removeObject('Fillet')
 doc.removeObject('baseplate')
 '''
+
+doc.recompute()
+
+
+
+gripperbox1 = doc.addObject("Part::Box", "gripperbox1")
+gripperbox1.Length = 7
+gripperbox1.Width = 10
+gripperbox1.Height = 14
+gripperbox1.Placement = App.Placement(App.Vector(-30,-24,4.6),App.Rotation(App.Vector(1,0,0),0)) 
+
+
+
+
+gripperbox2 = doc.addObject("Part::Box", "gripperbox2")
+gripperbox2.Length = 30
+gripperbox2.Width = 4
+gripperbox2.Height = 11
+gripperbox2.Placement = App.Placement(App.Vector(-15,39,4.6),App.Rotation(App.Vector(1,0,0),0)) 
+
+#
+#
+#marker1 = doc.addObject("Part::Sphere","marker1")
+#doc.marker1.Radius=5.00
+#
+#doc.marker1.Placement=App.Placement(App.Vector(-30.0,35.0,10),App.Rotation(App.Vector(1,0,0),0)) 
+#doc.marker1.Label='marker1'
+#
+#
+#marker2 = doc.addObject("Part::Sphere","marker2")
+#doc.marker2.Radius=5.00
+#
+#doc.marker2.Placement=App.Placement(App.Vector(-30.0,-35.0,10),App.Rotation(App.Vector(1,0,0),0)) 
+#doc.marker2.Label='marker1'
+#doc.recompute()
+#
+
+
+
+fusion = doc.addObject("Part::MultiFuse","fusion")
+doc.fusion.Shapes = [arduinobox2,gripperbox1,gripperbox2]
+doc.recompute()
+
+arduinobox =doc.addObject("Part::Feature","arduinobox")
+
+arduinobox .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
+
+doc.removeObject(fusion.Label)
+
+doc.removeObject('arduinobox2')
+#doc.removeObject('marker1')
+#doc.removeObject('marker2')
+doc.removeObject('gripperbox1')
+doc.removeObject('gripperbox2')
 
 doc.recompute()
 
