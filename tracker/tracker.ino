@@ -141,7 +141,7 @@ void quarter_hour_alarm()
 
 void loop() 
 {
-    if (GPS_DONE && IMU_DONE && LORA_DONE) rtc.standby();
+    if (GPS_DONE && IMU_DONE && LORA_DONE) rtc.standbyMode();
 
     if (!GPS_DONE)
     {

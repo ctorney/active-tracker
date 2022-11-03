@@ -133,9 +133,6 @@ void loop() {
 
 void save_behaviour()
 {
-
-
-  String gps_year = String("20" + String(GPS.year, DEC));
   String gps_month;
   String gps_day;
   if (GPS.month<10)
@@ -176,15 +173,11 @@ void save_behaviour()
     
     Serial.println("done.");
 
-  } else {
-
-    // if the file didn't open, print an error:
-
+  } 
+  else 
+  {
     Serial.println("error opening file");
-
   }
-
-  
 }
 
 void update_display() 

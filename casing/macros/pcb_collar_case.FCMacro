@@ -877,7 +877,7 @@ ScrewCut1.Radius = HEX_NUT_DIAM/2
 ScrewCut1.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,-slt/2 -FRONT_OFFSET ,-50),App.Rotation(App.Vector(1,0,0),SCREW_ANGLE)) 
 
 
-
+#print(-swt/2+SIDE_OFFSET - swt/2+SIDE_OFFSET)
 
 
 ScrewCut2 = doc.addObject("Part::Cylinder","ScrewCut2")
@@ -955,7 +955,7 @@ baseplate2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
 doc.removeObject(cut.Label)
 doc.removeObject(baseplate2pre2.Label)
 
-doc.removeObject(ScrewCut1.Label)
+#doc.removeObject(ScrewCut1.Label)
 doc.removeObject(ScrewCut2.Label)
 doc.removeObject(ScrewCut3.Label)
 doc.removeObject(ScrewCut4.Label)
@@ -1053,7 +1053,7 @@ doc.removeObject('baseplate')
 
 #doc.getObject("mountcutter").Transparency = 60
 
-
+sys.exit('bye')
 
 ####################################################
 ####################################################
