@@ -1,0 +1,1514 @@
+
+
+# -*- coding: utf-8 -*-
+import FreeCAD as App
+import Part
+import BOPTools.JoinFeatures
+
+import sys
+import Mesh
+
+
+doc = App.activeDocument()
+
+objs = doc.Objects
+for obj in objs:
+    name = obj.Name
+    doc.removeObject(name)
+
+
+
+
+BOX_HEIGHT = 80
+BOX_WIDTH = 50
+BOX_LENGTH = 50
+BOX_WIDTH_TOP = 70
+outerboxR = doc.addObject("Part::Wedge", "outerboxR")
+outerboxR.Zmin = -BOX_WIDTH/2
+outerboxR.Xmin = -BOX_LENGTH/2 
+outerboxR.Z2min = -BOX_WIDTH_TOP/2
+outerboxR.X2min = -BOX_LENGTH/2 
+outerboxR.Zmax = BOX_WIDTH/2
+outerboxR.Xmax = BOX_LENGTH/2
+outerboxR.Z2max = BOX_WIDTH_TOP/2
+outerboxR.X2max = BOX_LENGTH/2 
+
+outerboxR.Ymin = 0
+outerboxR.Ymax = BOX_HEIGHT
+
+
+outerboxR.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+CURVE_RADIUS = 100
+
+topcurve = doc.addObject("Part::Cylinder","topcurve")
+topcurve.Height = BOX_LENGTH
+topcurve.Radius = CURVE_RADIUS
+topcurve.Placement = App.Placement(App.Vector(-BOX_LENGTH/2,0,BOX_HEIGHT+CURVE_RADIUS-7),App.Rotation(App.Vector(0,1,0),90)) 
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerboxR
+doc.Cut.Tool = topcurve
+doc.recompute()
+
+outerboxR2 =doc.addObject("Part::Feature","outerboxR2")
+outerboxR2.Label="outerboxR2"
+outerboxR2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('outerboxR')
+doc.removeObject('topcurve')
+doc.recompute()
+
+
+
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = outerboxR2
+__fillets__ = []
+__fillets__.append((2,5.00,5.00))
+__fillets__.append((3,5.00,5.00))
+__fillets__.append((10,5.00,5.00))
+__fillets__.append((11,5.00,5.00))
+fillet.Edges = __fillets__
+del __fillets__
+
+doc.recompute()
+
+
+outerboxR = App.ActiveDocument.addObject("Part::Feature","outerboxR")
+outerboxR.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('outerboxR2')
+
+outerboxL = doc.addObject("Part::Wedge", "outerboxL")
+outerboxL.Zmin = -BOX_WIDTH/2
+outerboxL.Xmin = -BOX_LENGTH/2 
+outerboxL.Z2min = -BOX_WIDTH_TOP/2
+outerboxL.X2min = -BOX_LENGTH/2 
+outerboxL.Zmax = BOX_WIDTH/2
+outerboxL.Xmax = BOX_LENGTH/2
+outerboxL.Z2max = BOX_WIDTH_TOP/2
+outerboxL.X2max = BOX_LENGTH/2 
+
+outerboxL.Ymin = 0
+outerboxL.Ymax = BOX_HEIGHT
+
+
+outerboxL.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+CURVE_RADIUS = 100
+
+topcurve = doc.addObject("Part::Cylinder","topcurve")
+topcurve.Height = BOX_LENGTH
+topcurve.Radius = CURVE_RADIUS
+topcurve.Placement = App.Placement(App.Vector(-BOX_LENGTH/2,0,BOX_HEIGHT+CURVE_RADIUS-7),App.Rotation(App.Vector(0,1,0),90)) 
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerboxL
+doc.Cut.Tool = topcurve
+doc.recompute()
+
+outerboxL2 =doc.addObject("Part::Feature","outerboxL2")
+outerboxL2.Label="outerboxL2"
+outerboxL2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('outerboxL')
+doc.removeObject('topcurve')
+doc.recompute()
+
+
+
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = outerboxL2
+__fillets__ = []
+__fillets__.append((2,5.00,5.00))
+__fillets__.append((3,5.00,5.00))
+__fillets__.append((10,5.00,5.00))
+__fillets__.append((11,5.00,5.00))
+fillet.Edges = __fillets__
+del __fillets__
+
+doc.recompute()
+
+
+outerboxL = App.ActiveDocument.addObject("Part::Feature","outerboxL")
+outerboxL.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('outerboxL2')
+
+
+
+## left cuts
+
+WALL_THICKNESS = 20
+
+INNER_BOX_YMIN = -10
+INNER_BOX_YMAX = 90
+
+INNER_BOX_LENGTH  = BOX_LENGTH 
+
+INNER_BOX_WIDTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*INNER_BOX_YMIN/BOX_HEIGHT - 2*WALL_THICKNESS
+INNER_BOX_WIDTH_TOP = BOX_WIDTH_TOP + (BOX_WIDTH-BOX_WIDTH_TOP)*(BOX_HEIGHT-INNER_BOX_YMAX)/BOX_HEIGHT - 2*WALL_THICKNESS
+
+innerbox = doc.addObject("Part::Wedge", "innerbox")
+innerbox.Zmin = -INNER_BOX_WIDTH/2
+innerbox.Xmin = -INNER_BOX_LENGTH/2 
+innerbox.Z2min = -INNER_BOX_WIDTH_TOP/2
+innerbox.X2min = -INNER_BOX_LENGTH/2 
+innerbox.Zmax = INNER_BOX_WIDTH/2
+innerbox.Xmax = INNER_BOX_LENGTH/2
+innerbox.Z2max = INNER_BOX_WIDTH_TOP/2
+innerbox.X2max = INNER_BOX_LENGTH/2 
+
+innerbox.Ymin = INNER_BOX_YMIN
+innerbox.Ymax = INNER_BOX_YMAX
+
+
+innerbox.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+
+rightbox = doc.addObject("Part::Box", "rightbox")
+cutheight = 100
+rightbox.Length = BOX_LENGTH
+rightbox.Width = BOX_LENGTH
+rightbox.Height = cutheight
+rightbox.Placement = App.Placement(App.Vector(-BOX_LENGTH/2,0,-10),App.Rotation(App.Vector(0,0,1),0)) 
+
+doc.recompute()
+
+
+tolerance = 0.1
+WALL_THICKNESS = 6
+
+INNER_BOX_YMIN = 30-tolerance
+INNER_BOX_YMAX = 50+tolerance
+
+INNER_BOX_LENGTH  = BOX_LENGTH 
+
+INNER_BOX_WIDTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*INNER_BOX_YMIN/BOX_HEIGHT - 2*WALL_THICKNESS
+INNER_BOX_WIDTH_TOP = BOX_WIDTH_TOP + (BOX_WIDTH-BOX_WIDTH_TOP)*(BOX_HEIGHT-INNER_BOX_YMAX)/BOX_HEIGHT - 2*WALL_THICKNESS
+
+innerbox2 = doc.addObject("Part::Wedge", "innerbox2")
+innerbox2.Zmin = -INNER_BOX_WIDTH/2
+innerbox2.Xmin = -INNER_BOX_LENGTH/2 + 3 
+innerbox2.Z2min = -INNER_BOX_WIDTH_TOP/2
+innerbox2.X2min = -INNER_BOX_LENGTH/2 + 3 
+innerbox2.Zmax = INNER_BOX_WIDTH/2
+innerbox2.Xmax = INNER_BOX_LENGTH/2
+innerbox2.Z2max = INNER_BOX_WIDTH_TOP/2
+innerbox2.X2max = INNER_BOX_LENGTH/2 
+
+innerbox2.Ymin = INNER_BOX_YMIN
+innerbox2.Ymax = INNER_BOX_YMAX
+
+
+innerbox2.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+tolerance = 0.1
+WALL_THICKNESS = 3
+
+INNER_BOX_YMIN = 10-tolerance
+INNER_BOX_YMAX = 75+tolerance
+
+INNER_BOX_LENGTH  = BOX_LENGTH 
+
+INNER_BOX_WIDTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*INNER_BOX_YMIN/BOX_HEIGHT - 2*WALL_THICKNESS
+INNER_BOX_WIDTH_TOP = BOX_WIDTH_TOP + (BOX_WIDTH-BOX_WIDTH_TOP)*(BOX_HEIGHT-INNER_BOX_YMAX)/BOX_HEIGHT - 2*WALL_THICKNESS
+
+backbox = doc.addObject("Part::Wedge", "backbox")
+backbox.Zmin = -INNER_BOX_WIDTH/2
+backbox.Xmin = -INNER_BOX_LENGTH/2 
+backbox.Z2min = -INNER_BOX_WIDTH_TOP/2
+backbox.X2min = -INNER_BOX_LENGTH/2 
+backbox.Zmax = INNER_BOX_WIDTH/2
+backbox.Xmax = -INNER_BOX_LENGTH/2 + 3
+backbox.Z2max = INNER_BOX_WIDTH_TOP/2
+backbox.X2max = -INNER_BOX_LENGTH/2  + 3
+
+backbox.Ymin = INNER_BOX_YMIN
+backbox.Ymax = INNER_BOX_YMAX
+
+
+backbox.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+fusion = doc.addObject("Part::MultiFuse","fusion")
+doc.fusion.Shapes = [innerbox,rightbox,innerbox2]
+doc.recompute()
+
+leftcutbox =doc.addObject("Part::Feature","leftcutbox")
+
+leftcutbox .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
+
+doc.removeObject(fusion.Label)
+
+doc.removeObject('innerbox')
+doc.removeObject('rightbox')
+doc.removeObject('innerbox2')
+doc.removeObject('backbox')
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerboxL
+doc.Cut.Tool = leftcutbox
+doc.recompute()
+
+outerboxL2 =doc.addObject("Part::Feature","outerboxL2")
+outerboxL2 .Label="outerboxL2"
+outerboxL2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('leftcutbox')
+#doc.removeObject('outerboxL2')
+
+doc.recompute()
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerboxR
+doc.Cut.Tool = outerboxL2
+doc.recompute()
+
+outerboxR2 =doc.addObject("Part::Feature","outerboxR2")
+outerboxR2 .Label="outerboxR2"
+outerboxR2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('outerboxR')
+doc.removeObject('outerboxL2')
+doc.recompute()
+
+
+
+
+## left cuts
+
+WALL_THICKNESS = 20 #+ 10
+
+INNER_BOX_YMIN = -10
+INNER_BOX_YMAX = 90
+
+INNER_BOX_LENGTH  = BOX_LENGTH 
+
+INNER_BOX_WIDTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*INNER_BOX_YMIN/BOX_HEIGHT - 2*WALL_THICKNESS
+INNER_BOX_WIDTH_TOP = BOX_WIDTH_TOP + (BOX_WIDTH-BOX_WIDTH_TOP)*(BOX_HEIGHT-INNER_BOX_YMAX)/BOX_HEIGHT - 2*WALL_THICKNESS
+
+innerbox = doc.addObject("Part::Wedge", "innerbox")
+innerbox.Zmin = -INNER_BOX_WIDTH/2
+innerbox.Xmin = -INNER_BOX_LENGTH/2 
+innerbox.Z2min = -INNER_BOX_WIDTH_TOP/2
+innerbox.X2min = -INNER_BOX_LENGTH/2 
+innerbox.Zmax = INNER_BOX_WIDTH/2
+innerbox.Xmax = INNER_BOX_LENGTH/2
+innerbox.Z2max = INNER_BOX_WIDTH_TOP/2
+innerbox.X2max = INNER_BOX_LENGTH/2 
+
+innerbox.Ymin = INNER_BOX_YMIN
+innerbox.Ymax = INNER_BOX_YMAX
+
+
+innerbox.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+
+rightbox = doc.addObject("Part::Box", "rightbox")
+cutheight = 100
+rightbox.Length = BOX_LENGTH
+rightbox.Width = BOX_LENGTH
+rightbox.Height = cutheight
+rightbox.Placement = App.Placement(App.Vector(-BOX_LENGTH/2,0,-10),App.Rotation(App.Vector(0,0,1),0)) 
+
+doc.recompute()
+
+
+
+WALL_THICKNESS = 6
+
+INNER_BOX_YMIN = 30
+INNER_BOX_YMAX = 50
+
+INNER_BOX_LENGTH  = BOX_LENGTH 
+
+INNER_BOX_WIDTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*INNER_BOX_YMIN/BOX_HEIGHT - 2*WALL_THICKNESS
+INNER_BOX_WIDTH_TOP = BOX_WIDTH_TOP + (BOX_WIDTH-BOX_WIDTH_TOP)*(BOX_HEIGHT-INNER_BOX_YMAX)/BOX_HEIGHT - 2*WALL_THICKNESS
+
+innerbox2 = doc.addObject("Part::Wedge", "innerbox2")
+innerbox2.Zmin = -INNER_BOX_WIDTH/2
+innerbox2.Xmin = -INNER_BOX_LENGTH/2 + 3
+innerbox2.Z2min = -INNER_BOX_WIDTH_TOP/2
+innerbox2.X2min = -INNER_BOX_LENGTH/2 + 3
+innerbox2.Zmax = INNER_BOX_WIDTH/2
+innerbox2.Xmax = INNER_BOX_LENGTH/2
+innerbox2.Z2max = INNER_BOX_WIDTH_TOP/2
+innerbox2.X2max = INNER_BOX_LENGTH/2 
+
+innerbox2.Ymin = INNER_BOX_YMIN
+innerbox2.Ymax = INNER_BOX_YMAX
+
+
+innerbox2.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+
+fusion = doc.addObject("Part::MultiFuse","fusion")
+doc.fusion.Shapes = [innerbox,rightbox,innerbox2]
+doc.recompute()
+
+leftcutbox =doc.addObject("Part::Feature","leftcutbox")
+
+leftcutbox .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
+
+doc.removeObject(fusion.Label)
+
+doc.removeObject('innerbox')
+doc.removeObject('rightbox')
+doc.removeObject('innerbox2')
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerboxL
+doc.Cut.Tool = leftcutbox
+doc.recompute()
+
+outerboxL2 =doc.addObject("Part::Feature","outerboxL2")
+outerboxL2 .Label="outerboxL2"
+outerboxL2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('leftcutbox')
+doc.removeObject('outerboxL')
+
+doc.recompute()
+
+
+
+WALL_THICKNESS = 6
+BACK_WALL = 20 + 10
+TOP_BOX_YMIN = 53
+TOP_BOX_YMAX = 63
+
+TOP_BOX_LENGTH  = BOX_LENGTH #- WALL_THICKNESS
+
+TOP_BOX_WIDTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*TOP_BOX_YMIN/BOX_HEIGHT - WALL_THICKNESS
+TOP_BOX_WIDTH_TOP = BOX_WIDTH_TOP + (BOX_WIDTH-BOX_WIDTH_TOP)*(BOX_HEIGHT-TOP_BOX_YMAX)/BOX_HEIGHT - WALL_THICKNESS
+
+topbox = doc.addObject("Part::Wedge", "topbox")
+topbox.Zmin = -TOP_BOX_WIDTH/2
+topbox.Xmin = -TOP_BOX_LENGTH/2  + BACK_WALL
+topbox.Z2min = -TOP_BOX_WIDTH_TOP/2
+topbox.X2min = -TOP_BOX_LENGTH/2  + BACK_WALL
+topbox.Zmax = TOP_BOX_WIDTH/2
+topbox.Xmax = TOP_BOX_LENGTH/2  
+topbox.Z2max = TOP_BOX_WIDTH_TOP/2
+topbox.X2max = TOP_BOX_LENGTH/2  
+
+topbox.Ymin = TOP_BOX_YMIN
+topbox.Ymax = TOP_BOX_YMAX
+
+
+topbox.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+WALL_THICKNESS = 6
+
+LOWER_BOX_YMIN = 12+5
+LOWER_BOX_YMAX = 22+5
+
+LOWER_BOX_LENGTH  = BOX_LENGTH #- WALL_THICKNESS
+
+LOWER_BOX_WIDTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*LOWER_BOX_YMIN/BOX_HEIGHT - WALL_THICKNESS
+LOWER_BOX_WIDTH_TOP = BOX_WIDTH_TOP + (BOX_WIDTH-BOX_WIDTH_TOP)*(BOX_HEIGHT-LOWER_BOX_YMAX)/BOX_HEIGHT - WALL_THICKNESS
+
+lowerbox = doc.addObject("Part::Wedge", "lowerbox")
+lowerbox.Zmin = -LOWER_BOX_WIDTH/2
+lowerbox.Xmin = -LOWER_BOX_LENGTH/2  + BACK_WALL
+lowerbox.Z2min = -LOWER_BOX_WIDTH_TOP/2
+lowerbox.X2min = -LOWER_BOX_LENGTH/2  + BACK_WALL
+lowerbox.Zmax = LOWER_BOX_WIDTH/2
+lowerbox.Xmax = LOWER_BOX_LENGTH/2  
+lowerbox.Z2max = LOWER_BOX_WIDTH_TOP/2
+lowerbox.X2max = LOWER_BOX_LENGTH/2  
+
+lowerbox.Ymin = LOWER_BOX_YMIN
+lowerbox.Ymax = LOWER_BOX_YMAX
+
+
+lowerbox.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerboxL2
+doc.Cut.Tool = lowerbox
+doc.recompute()
+
+outerboxL =doc.addObject("Part::Feature","outerboxL")
+outerboxL .Label="outerboxL"
+outerboxL .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('outerboxL2')
+
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerboxL
+doc.Cut.Tool = topbox
+doc.recompute()
+
+outerboxL2 =doc.addObject("Part::Feature","outerboxL2")
+outerboxL2 .Label="outerboxL2"
+outerboxL2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('outerboxL')
+doc.recompute()
+
+
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerboxR2
+doc.Cut.Tool = lowerbox
+doc.recompute()
+
+outerboxR =doc.addObject("Part::Feature","outerboxR")
+outerboxR .Label="outerboxR"
+outerboxR .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('outerboxR2')
+
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerboxR
+doc.Cut.Tool = topbox
+doc.recompute()
+
+outerboxR2 =doc.addObject("Part::Feature","outerboxR2")
+outerboxR2 .Label="outerboxR2"
+outerboxR2 .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('outerboxR')
+doc.removeObject('topbox')
+doc.removeObject('lowerbox')
+doc.recompute()
+
+
+WALL_THICKNESS = 9
+
+MID_BOX_YMIN = 30 + 3 
+MID_BOX_YMAX = 50 - 3
+
+MID_BOX_LENGTH  = BOX_LENGTH #- WALL_THICKNESS
+
+MID_BOX_WIDTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*MID_BOX_YMIN/BOX_HEIGHT - 2*WALL_THICKNESS
+MID_BOX_WIDTH_TOP = BOX_WIDTH_TOP + (BOX_WIDTH-BOX_WIDTH_TOP)*(BOX_HEIGHT-MID_BOX_YMAX)/BOX_HEIGHT - 2*WALL_THICKNESS
+
+midbox = doc.addObject("Part::Wedge", "midbox")
+midbox.Zmin = -MID_BOX_WIDTH/2 - 3
+midbox.Xmin = -MID_BOX_LENGTH/2  + 6
+midbox.Z2min = -MID_BOX_WIDTH_TOP/2 - 3
+midbox.X2min = -MID_BOX_LENGTH/2  + 6
+midbox.Zmax = MID_BOX_WIDTH/2 
+midbox.Xmax = MID_BOX_LENGTH/2  
+midbox.Z2max = MID_BOX_WIDTH_TOP/2 
+midbox.X2max = MID_BOX_LENGTH/2  
+
+midbox.Ymin = MID_BOX_YMIN
+midbox.Ymax = MID_BOX_YMAX
+
+
+midbox.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerboxR2
+doc.Cut.Tool = midbox
+doc.recompute()
+
+outerboxR =doc.addObject("Part::Feature","outerboxR")
+outerboxR .Label="outerboxR"
+outerboxR .Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('outerboxR2')
+doc.removeObject('midbox')
+
+
+
+
+#doc.recompute()
+
+ROD_RADIUS = 3.5
+BAND_WIDTH = 35
+
+ROD_Z = 0.5*(TOP_BOX_YMIN + TOP_BOX_YMAX)
+
+# top front screw hole
+
+rod1 = doc.addObject("Part::Cylinder","rod1")
+rod1.Height = BOX_LENGTH - 4.9
+rod1.Radius = ROD_RADIUS
+rod1.Placement = App.Placement(App.Vector(-BOX_LENGTH/2,-BAND_WIDTH/2,ROD_Z),App.Rotation(App.Vector(0,1,0),90)) 
+
+
+
+rod2 = doc.addObject("Part::Cylinder","rod2")
+rod2.Height = BOX_LENGTH - 4.9
+rod2.Radius = ROD_RADIUS
+rod2.Placement = App.Placement(App.Vector(-BOX_LENGTH/2,BAND_WIDTH/2,ROD_Z),App.Rotation(App.Vector(0,1,0),90)) 
+
+
+ROD_Z = 0.5*(LOWER_BOX_YMIN + LOWER_BOX_YMAX)
+
+# top front screw hole
+
+rod3 = doc.addObject("Part::Cylinder","rod3")
+rod3.Height = BOX_LENGTH - 4.9
+rod3.Radius = ROD_RADIUS
+rod3.Placement = App.Placement(App.Vector(-BOX_LENGTH/2,-BAND_WIDTH/2,ROD_Z),App.Rotation(App.Vector(0,1,0),90)) 
+
+
+
+rod4 = doc.addObject("Part::Cylinder","rod4")
+rod4.Height = BOX_LENGTH - 4.9
+rod4.Radius = ROD_RADIUS
+rod4.Placement = App.Placement(App.Vector(-BOX_LENGTH/2,BAND_WIDTH/2,ROD_Z),App.Rotation(App.Vector(0,1,0),90)) 
+
+
+
+
+
+
+fusion = doc.addObject("Part::MultiFuse","fusion")
+doc.fusion.Shapes = [outerboxL2,rod1,rod3]
+doc.recompute()
+
+sideboxL =doc.addObject("Part::Feature","sideboxL")
+
+sideboxL .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
+
+doc.removeObject(fusion.Label)
+
+doc.removeObject('rod1')
+doc.removeObject('rod3')
+doc.removeObject('outerboxL2')
+
+
+fusion = doc.addObject("Part::MultiFuse","fusion")
+doc.fusion.Shapes = [outerboxR,rod2,rod4]
+doc.recompute()
+
+sideboxR =doc.addObject("Part::Feature","sideboxR")
+
+sideboxR .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
+
+doc.removeObject(fusion.Label)
+
+doc.removeObject('rod2')
+doc.removeObject('rod4')
+doc.removeObject('outerboxR')
+
+
+
+
+## screws through 
+SCREW_RADIUS = 4.5
+SCREW_LENGTH = 200
+SCREW_OFFSET = 14 
+
+SCREW_OFFSET2 = 10
+
+
+
+screw1 = doc.addObject("Part::Cylinder","screw1")
+screw1.Height = SCREW_LENGTH
+screw1.Radius = SCREW_RADIUS
+screw1.Placement = App.Placement(App.Vector(SCREW_OFFSET,SCREW_LENGTH/2,BOX_HEIGHT-SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+screw2 = doc.addObject("Part::Cylinder","screw2")
+screw2.Height = SCREW_LENGTH
+screw2.Radius = SCREW_RADIUS
+screw2.Placement = App.Placement(App.Vector(-SCREW_OFFSET,SCREW_LENGTH/2,BOX_HEIGHT-SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+screw3 = doc.addObject("Part::Cylinder","screw3")
+screw3.Height = SCREW_LENGTH
+screw3.Radius = SCREW_RADIUS
+screw3.Placement = App.Placement(App.Vector(SCREW_OFFSET,SCREW_LENGTH/2,SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+screw4 = doc.addObject("Part::Cylinder","screw4")
+screw4.Height = SCREW_LENGTH
+screw4.Radius = SCREW_RADIUS
+screw4.Placement = App.Placement(App.Vector(-SCREW_OFFSET,SCREW_LENGTH/2,SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+# cuts
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxL
+doc.Cut.Tool = screw1
+doc.recompute()
+
+sideboxL2 =doc.addObject("Part::Feature","sideboxL2")
+sideboxL2.Label="sideboxL2"
+sideboxL2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxL')
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxL2
+doc.Cut.Tool = screw2
+doc.recompute()
+
+sideboxL =doc.addObject("Part::Feature","sideboxL")
+sideboxL.Label="sideboxL"
+sideboxL.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxL2')
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxL
+doc.Cut.Tool = screw3
+doc.recompute()
+
+sideboxL2 =doc.addObject("Part::Feature","sideboxL2")
+sideboxL2.Label="sideboxL2"
+sideboxL2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxL')
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxL2
+doc.Cut.Tool = screw4
+doc.recompute()
+
+sideboxL =doc.addObject("Part::Feature","sideboxL")
+sideboxL.Label="sideboxL"
+sideboxL.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxL2')
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxR
+doc.Cut.Tool = screw1
+doc.recompute()
+
+sideboxR2 =doc.addObject("Part::Feature","sideboxR2")
+sideboxR2.Label="sideboxR2"
+sideboxR2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxR')
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxR2
+doc.Cut.Tool = screw2
+doc.recompute()
+
+sideboxR =doc.addObject("Part::Feature","sideboxR")
+sideboxR.Label="sideboxR"
+sideboxR.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxR2')
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxR
+doc.Cut.Tool = screw3
+doc.recompute()
+
+sideboxR2 =doc.addObject("Part::Feature","sideboxR2")
+sideboxR2.Label="sideboxR2"
+sideboxR2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxR')
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxR2
+doc.Cut.Tool = screw4
+doc.recompute()
+
+sideboxR =doc.addObject("Part::Feature","sideboxR")
+sideboxR.Label="sideboxR"
+sideboxR.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxR2')
+
+
+doc.removeObject('screw1')
+doc.removeObject('screw2')
+doc.removeObject('screw3')
+doc.removeObject('screw4')
+
+
+#doc.recompute()
+
+
+
+
+
+
+#cut = doc.addObject("Part::Cut","Cut")
+#doc.Cut.Base = outerbox
+#doc.Cut.Tool = screw
+#doc.recompute()
+
+#outerbox2 =doc.addObject("Part::Feature","outerbox2")
+#outerbox2.Label="outerbox2"
+#outerbox2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+#doc.removeObject('Cut')
+#doc.removeObject('screw')
+#doc.removeObject('outerbox')
+#doc.recompute()
+
+
+#LOWER_BOX_WIDTH = BOX_WIDTH_TOP + (BOX_WIDTH-BOX_WIDTH_TOP)*(BOX_HEIGHT-MID_BOX_YMAX)/BOX_HEIGHT - 2*WALL_THICKNESS
+
+
+
+SCREW_RADIUS = 13/2#3.25
+SCREW_LENGTH = 200
+SCREW_OFFSET = 14 
+SCREW_OFFSET2 = 10
+
+SCREW_Z = BOX_HEIGHT-SCREW_OFFSET2
+
+SCREW_LENGTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*SCREW_Z/BOX_HEIGHT - 28
+
+# top front screw hole
+
+screw1 = doc.addObject("Part::Cylinder","screw1")
+screw1.Height = SCREW_LENGTH
+screw1.Radius = SCREW_RADIUS
+screw1.Placement = App.Placement(App.Vector(SCREW_OFFSET,SCREW_LENGTH/2,BOX_HEIGHT-SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+screw2 = doc.addObject("Part::Cylinder","screw2")
+screw2.Height = SCREW_LENGTH
+screw2.Radius = SCREW_RADIUS
+screw2.Placement = App.Placement(App.Vector(-SCREW_OFFSET,SCREW_LENGTH/2,BOX_HEIGHT-SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+# cuts
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxL
+doc.Cut.Tool = screw1
+doc.recompute()
+
+sideboxL2 =doc.addObject("Part::Feature","sideboxL2")
+sideboxL2.Label="sideboxL2"
+sideboxL2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxL')
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxL2
+doc.Cut.Tool = screw2
+doc.recompute()
+
+sideboxL =doc.addObject("Part::Feature","sideboxL")
+sideboxL.Label="sideboxL"
+sideboxL.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxL2')
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxR
+doc.Cut.Tool = screw1
+doc.recompute()
+
+sideboxR2 =doc.addObject("Part::Feature","sideboxR2")
+sideboxR2.Label="sideboxR2"
+sideboxR2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxR')
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxR2
+doc.Cut.Tool = screw2
+doc.recompute()
+
+sideboxR =doc.addObject("Part::Feature","sideboxR")
+sideboxR.Label="sideboxR"
+sideboxR.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxR2')
+
+
+doc.removeObject('screw1')
+doc.removeObject('screw2')
+
+#cut = doc.addObject("Part::Cut","Cut")
+#doc.Cut.Base = outerbox2
+#doc.Cut.Tool = screw_buffer
+#doc.recompute()
+
+#outerbox =doc.addObject("Part::Feature","outerbox")
+#outerbox.Label="outerbox"
+#outerbox.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+#doc.removeObject('Cut')
+#doc.removeObject('outerbox2')
+#doc.removeObject('screw_buffer')
+#doc.recompute()
+
+# top back screw hole
+
+
+
+SCREW_RADIUS = 13/2#3.25
+SCREW_LENGTH = 200
+SCREW_OFFSET = 14
+SCREW_OFFSET2 = 10
+
+
+
+SCREW_Z = SCREW_OFFSET2
+
+SCREW_LENGTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*SCREW_Z/BOX_HEIGHT - 28
+
+# top front screw hole
+
+screw1 = doc.addObject("Part::Cylinder","screw1")
+screw1.Height = SCREW_LENGTH
+screw1.Radius = SCREW_RADIUS
+screw1.Placement = App.Placement(App.Vector(SCREW_OFFSET,SCREW_LENGTH/2,SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+screw2 = doc.addObject("Part::Cylinder","screw2")
+screw2.Height = SCREW_LENGTH
+screw2.Radius = SCREW_RADIUS
+screw2.Placement = App.Placement(App.Vector(-SCREW_OFFSET,SCREW_LENGTH/2,SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+#SCREW_BUFFER_RADIUS = 6
+#SCREW_BUFFER_LENGTH = BOX_WIDTH_TOP - 20
+
+#screw_buffer = doc.addObject("Part::Cylinder","screw_buffer")
+#screw_buffer.Height = SCREW_BUFFER_LENGTH
+#screw_buffer.Radius = SCREW_BUFFER_RADIUS
+#screw_buffer.Placement = App.Placement(App.Vector(-SCREW_OFFSET,SCREW_BUFFER_LENGTH/2,BOX_HEIGHT-SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+basebox = doc.addObject("Part::Box", "basebox")
+basebox.Length = BOX_LENGTH - 6
+basebox.Width = BOX_LENGTH - 28
+basebox.Height = SCREW_OFFSET2 + SCREW_RADIUS - 5
+basebox.Placement = App.Placement(App.Vector(-BOX_LENGTH/2 + 3,-BOX_LENGTH/2 + 14,0),App.Rotation(App.Vector(0,0,1),0)) 
+
+doc.recompute()
+
+
+
+
+# cuts
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxL
+doc.Cut.Tool = screw1
+doc.recompute()
+
+sideboxL2 =doc.addObject("Part::Feature","sideboxL2")
+sideboxL2.Label="sideboxL2"
+sideboxL2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxL')
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxL2
+doc.Cut.Tool = screw2
+doc.recompute()
+
+sideboxL =doc.addObject("Part::Feature","sideboxL")
+sideboxL.Label="sideboxL"
+sideboxL.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxL2')
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxL
+doc.Cut.Tool = basebox
+doc.recompute()
+
+sideboxL2 =doc.addObject("Part::Feature","sideboxL2")
+sideboxL2.Label="sideboxL2"
+sideboxL2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxL')
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxR
+doc.Cut.Tool = screw1
+doc.recompute()
+
+sideboxR2 =doc.addObject("Part::Feature","sideboxR2")
+sideboxR2.Label="sideboxR2"
+sideboxR2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxR')
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxR2
+doc.Cut.Tool = screw2
+doc.recompute()
+
+sideboxR =doc.addObject("Part::Feature","sideboxR")
+sideboxR.Label="sideboxR"
+sideboxR.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxR2')
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxR
+doc.Cut.Tool = basebox
+doc.recompute()
+
+sideboxR2 =doc.addObject("Part::Feature","sideboxR2")
+sideboxR2.Label="sideboxR2"
+sideboxR2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxR')
+
+doc.removeObject('screw1')
+doc.removeObject('screw2')
+doc.removeObject('basebox')
+
+
+## front cover
+
+
+
+WALL_THICKNESS = 5
+COVER_YMIN = 17 + 0.1
+COVER_YMAX = 63 - 0.1
+
+TOP_BOX_LENGTH  = BOX_LENGTH #- WALL_THICKNESS
+
+COVER_WIDTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*COVER_YMIN/BOX_HEIGHT - 6
+COVER_WIDTH_TOP = BOX_WIDTH_TOP + (BOX_WIDTH-BOX_WIDTH_TOP)*(BOX_HEIGHT-COVER_YMAX)/BOX_HEIGHT - 6
+
+coverbox = doc.addObject("Part::Wedge", "coverbox")
+coverbox.Zmin = -COVER_WIDTH/2
+coverbox.Z2min = -COVER_WIDTH_TOP/2
+coverbox.Zmax = COVER_WIDTH/2
+coverbox.Z2max = COVER_WIDTH_TOP/2
+
+coverbox.Xmin = BOX_LENGTH/2  - WALL_THICKNESS
+coverbox.X2min = BOX_LENGTH/2  - WALL_THICKNESS
+coverbox.Xmax = BOX_LENGTH/2  
+coverbox.X2max = BOX_LENGTH/2  
+
+coverbox.Ymin = COVER_YMIN
+coverbox.Ymax = COVER_YMAX
+
+
+coverbox.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxR2
+doc.Cut.Tool = coverbox
+doc.recompute()
+
+sideboxR =doc.addObject("Part::Feature","sideboxR")
+sideboxR.Label="sideboxR"
+sideboxR.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxR2')
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxL2
+doc.Cut.Tool = coverbox
+doc.recompute()
+
+sideboxL =doc.addObject("Part::Feature","sideboxL")
+sideboxL.Label="sideboxL"
+sideboxL.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxL2')
+
+coverbox.Visibility = True
+
+
+
+
+lidhole1= doc.addObject("Part::Cylinder","lidhole1")
+lidhole1.Height = BOX_LENGTH +2
+lidhole1.Radius = 1.5
+lidhole1.Placement = App.Placement(App.Vector(-BOX_LENGTH/2 - 1,0,30),App.Rotation(App.Vector(0,1,0),90)) 
+
+
+
+lidhole2= doc.addObject("Part::Cylinder","lidhole2")
+lidhole2.Height = BOX_LENGTH +2
+lidhole2.Radius = 1.5
+lidhole2.Placement = App.Placement(App.Vector(-BOX_LENGTH/2 - 1,0,50),App.Rotation(App.Vector(0,1,0),90)) 
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxR
+doc.Cut.Tool = lidhole1
+doc.recompute()
+
+sideboxR2 =doc.addObject("Part::Feature","sideboxR2")
+sideboxR2.Label="sideboxR2"
+sideboxR2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxR')
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxR2
+doc.Cut.Tool = lidhole2
+doc.recompute()
+
+sideboxR =doc.addObject("Part::Feature","sideboxR")
+sideboxR.Label="sideboxR"
+sideboxR.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxR2')
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = coverbox
+doc.Cut.Tool = lidhole1
+doc.recompute()
+
+coverbox2 =doc.addObject("Part::Feature","coverbox2")
+coverbox2.Label="coverbox2"
+coverbox2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('coverbox')
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = coverbox2
+doc.Cut.Tool = lidhole2
+doc.recompute()
+
+coverbox =doc.addObject("Part::Feature","coverbox")
+coverbox.Label="coverbox"
+coverbox.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('coverbox2')
+doc.removeObject('lidhole1')
+doc.removeObject('lidhole2')
+
+
+
+
+
+lidhole1= doc.addObject("Part::Cylinder","lidhole1")
+lidhole1.Height = 3
+lidhole1.Radius = 3
+lidhole1.Placement = App.Placement(App.Vector(BOX_LENGTH/2 - 3,0,30),App.Rotation(App.Vector(0,1,0),90)) 
+
+
+
+lidhole2= doc.addObject("Part::Cylinder","lidhole2")
+lidhole2.Height = 3
+lidhole2.Radius = 3
+lidhole2.Placement = App.Placement(App.Vector(BOX_LENGTH/2 - 3,0,50),App.Rotation(App.Vector(0,1,0),90)) 
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = coverbox
+doc.Cut.Tool = lidhole1
+doc.recompute()
+
+coverbox2 =doc.addObject("Part::Feature","coverbox2")
+coverbox2.Label="coverbox2"
+coverbox2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('coverbox')
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = coverbox2
+doc.Cut.Tool = lidhole2
+doc.recompute()
+
+coverbox =doc.addObject("Part::Feature","coverbox")
+coverbox.Label="coverbox"
+coverbox.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('coverbox2')
+doc.removeObject('lidhole1')
+doc.removeObject('lidhole2')
+
+sys.exit()
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerbox2
+doc.Cut.Tool = screw
+doc.recompute()
+
+outerbox =doc.addObject("Part::Feature","outerbox")
+outerbox.Label="outerbox"
+outerbox.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('screw')
+doc.removeObject('outerbox2')
+doc.recompute()
+
+##################BOTTOM SCREWS
+
+
+SCREW_RADIUS = 3.25
+SCREW_LENGTH = 200
+SCREW_OFFSET = 14
+SCREW_OFFSET2 = 7 
+
+# top front screw hole
+
+screw = doc.addObject("Part::Cylinder","screw")
+screw.Height = SCREW_LENGTH
+screw.Radius = SCREW_RADIUS
+screw.Placement = App.Placement(App.Vector(SCREW_OFFSET,SCREW_LENGTH/2,SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+#SCREW_BUFFER_RADIUS = 6
+#SCREW_BUFFER_LENGTH = BOX_WIDTH_TOP - 20
+
+#screw_buffer = doc.addObject("Part::Cylinder","screw_buffer")
+#screw_buffer.Height = SCREW_BUFFER_LENGTH
+#screw_buffer.Radius = SCREW_BUFFER_RADIUS
+#screw_buffer.Placement = App.Placement(App.Vector(SCREW_OFFSET,SCREW_BUFFER_LENGTH/2,BOX_HEIGHT-SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerbox
+doc.Cut.Tool = screw
+doc.recompute()
+
+outerbox2 =doc.addObject("Part::Feature","outerbox2")
+outerbox2.Label="outerbox2"
+outerbox2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('screw')
+doc.removeObject('outerbox')
+doc.recompute()
+
+
+
+#cut = doc.addObject("Part::Cut","Cut")
+#doc.Cut.Base = outerbox2
+#doc.Cut.Tool = screw_buffer
+#doc.recompute()
+
+#outerbox =doc.addObject("Part::Feature","outerbox")
+#outerbox.Label="outerbox"
+#outerbox.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+#doc.removeObject('Cut')
+#doc.removeObject('outerbox2')
+#doc.removeObject('screw_buffer')
+#doc.recompute()
+
+# top back screw hole
+
+screw = doc.addObject("Part::Cylinder","screw")
+screw.Height = SCREW_LENGTH
+screw.Radius = SCREW_RADIUS
+screw.Placement = App.Placement(App.Vector(-SCREW_OFFSET,SCREW_LENGTH/2,SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+#SCREW_BUFFER_RADIUS = 6
+#SCREW_BUFFER_LENGTH = BOX_WIDTH_TOP - 20
+
+#screw_buffer = doc.addObject("Part::Cylinder","screw_buffer")
+#screw_buffer.Height = SCREW_BUFFER_LENGTH
+#screw_buffer.Radius = SCREW_BUFFER_RADIUS
+#screw_buffer.Placement = App.Placement(App.Vector(-SCREW_OFFSET,SCREW_BUFFER_LENGTH/2,BOX_HEIGHT-SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerbox2
+doc.Cut.Tool = screw
+doc.recompute()
+
+outerbox =doc.addObject("Part::Feature","outerbox")
+outerbox.Label="outerbox"
+outerbox.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('screw')
+doc.removeObject('outerbox2')
+doc.recompute()
+
+
+TOLERANCE = 0.5
+
+LID_BOX1_LENGTH = 40 + TOLERANCE
+LID_BOX1_WIDTH = 40 + TOLERANCE
+LID_BOX1_HEIGHT = INNER_BOX_YMIN + 2
+
+lidbox1 = doc.addObject("Part::Box", "lidbox1")
+lidbox1.Length = LID_BOX1_LENGTH
+lidbox1.Width = LID_BOX1_WIDTH
+lidbox1.Height = LID_BOX1_HEIGHT
+lidbox1.Placement = App.Placement(App.Vector(-LID_BOX1_LENGTH/2,-LID_BOX1_WIDTH/2,0),App.Rotation(App.Vector(0,0,1),0)) 
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerbox
+doc.Cut.Tool = lidbox1
+doc.recompute()
+
+outerbox2 =doc.addObject("Part::Feature","outerbox2")
+outerbox2.Label="outerbox2"
+outerbox2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('lidbox1')
+doc.removeObject('outerbox')
+doc.recompute()
+
+
+
+LID_BOX2_LENGTH = 44 + TOLERANCE
+LID_BOX2_WIDTH = 44 + TOLERANCE
+LID_BOX2_HEIGHT = SCREW_OFFSET2 + SCREW_RADIUS + 2
+
+lidbox2 = doc.addObject("Part::Box", "lidbox2")
+lidbox2.Length = LID_BOX2_LENGTH
+lidbox2.Width = LID_BOX2_WIDTH
+lidbox2.Height = LID_BOX2_HEIGHT
+lidbox2.Placement = App.Placement(App.Vector(-LID_BOX2_LENGTH/2,-LID_BOX2_WIDTH/2,0),App.Rotation(App.Vector(0,0,1),0)) 
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerbox2
+doc.Cut.Tool = lidbox2
+doc.recompute()
+
+outerbox =doc.addObject("Part::Feature","outerbox")
+outerbox.Label="outerbox"
+outerbox.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('lidbox2')
+doc.removeObject('outerbox2')
+doc.recompute()
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = outerbox
+doc.Cut.Tool = innerbox
+doc.recompute()
+
+outerbox2 =doc.addObject("Part::Feature","outerbox2")
+outerbox2.Label="outerbox2"
+outerbox2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('innerbox')
+doc.removeObject('outerbox')
+doc.recompute()
+
+
+## MAKE THE LID
+
+
+LID_BOX1_LENGTH = 40 
+LID_BOX1_WIDTH = 40 
+LID_BOX1_HEIGHT = INNER_BOX_YMIN 
+
+lidbox1 = doc.addObject("Part::Box", "lidbox1")
+lidbox1.Length = LID_BOX1_LENGTH
+lidbox1.Width = LID_BOX1_WIDTH
+lidbox1.Height = LID_BOX1_HEIGHT
+lidbox1.Placement = App.Placement(App.Vector(-LID_BOX1_LENGTH/2,-LID_BOX1_WIDTH/2,0),App.Rotation(App.Vector(0,0,1),0)) 
+
+
+LID_BOX2_LENGTH = 44 
+LID_BOX2_WIDTH = 44 
+LID_BOX2_HEIGHT = SCREW_OFFSET2 + SCREW_RADIUS+2
+
+lidbox2 = doc.addObject("Part::Box", "lidbox2")
+lidbox2.Length = LID_BOX2_LENGTH
+lidbox2.Width = LID_BOX2_WIDTH
+lidbox2.Height = LID_BOX2_HEIGHT
+lidbox2.Placement = App.Placement(App.Vector(-LID_BOX2_LENGTH/2,-LID_BOX2_WIDTH/2,0),App.Rotation(App.Vector(0,0,1),0)) 
+
+
+LID_BOX3_LENGTH = BOX_LENGTH 
+LID_BOX3_WIDTH = BOX_WIDTH 
+LID_BOX3_HEIGHT = 3
+
+#lidbox3 = doc.addObject("Part::Box", "lidbox3")
+#lidbox3.Length = LID_BOX3_LENGTH
+#lidbox3.Width = LID_BOX3_WIDTH
+#lidbox3.Height = LID_BOX3_HEIGHT
+#lidbox3.Placement = App.Placement(App.Vector(-LID_BOX3_LENGTH/2,-LID_BOX3_WIDTH/2,-LID_BOX3_HEIGHT),App.Rotation(App.Vector(0,0,1),0)) 
+
+
+
+
+
+#INNER_BOX_WIDTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*INNER_BOX_YMIN/BOX_HEIGHT - 2*WALL_THICKNESS
+LID_BOX3_WIDTH_TOP = BOX_WIDTH - LID_BOX3_HEIGHT*(BOX_WIDTH_TOP-BOX_WIDTH)/BOX_HEIGHT 
+
+lidbox3 = doc.addObject("Part::Wedge", "lidbox3")
+lidbox3.Zmin = -LID_BOX3_WIDTH_TOP/2
+lidbox3.Xmin = -LID_BOX3_LENGTH/2 
+lidbox3.Z2min = -LID_BOX3_WIDTH/2
+lidbox3.X2min = -LID_BOX3_LENGTH/2 
+lidbox3.Zmax = LID_BOX3_WIDTH_TOP/2
+lidbox3.Xmax = LID_BOX3_LENGTH/2
+lidbox3.Z2max = LID_BOX3_WIDTH/2
+lidbox3.X2max = LID_BOX3_LENGTH/2 
+
+lidbox3.Ymin = -LID_BOX3_HEIGHT
+lidbox3.Ymax = 0
+
+
+lidbox3.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+fusion = doc.addObject("Part::MultiFuse","Fusion")
+doc.Fusion.Shapes = [lidbox1,lidbox2,lidbox3]
+doc.recompute()
+
+lidbox =doc.addObject("Part::Feature","lidbox")
+
+lidbox .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
+
+
+doc.removeObject('Fusion')
+doc.removeObject('lidbox1')
+doc.removeObject('lidbox2')
+doc.removeObject('lidbox3')
+
+
+
+
+# top front screw hole
+
+screw = doc.addObject("Part::Cylinder","screw")
+screw.Height = SCREW_LENGTH
+screw.Radius = SCREW_RADIUS
+screw.Placement = App.Placement(App.Vector(SCREW_OFFSET,SCREW_LENGTH/2,SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = lidbox
+doc.Cut.Tool = screw
+doc.recompute()
+
+lidbox2 =doc.addObject("Part::Feature","lidbox2")
+lidbox2.Label="lidbox2"
+lidbox2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('screw')
+doc.removeObject('lidbox')
+doc.recompute()
+
+screw = doc.addObject("Part::Cylinder","screw")
+screw.Height = SCREW_LENGTH
+screw.Radius = SCREW_RADIUS
+screw.Placement = App.Placement(App.Vector(-SCREW_OFFSET,SCREW_LENGTH/2,SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = lidbox2
+doc.Cut.Tool = screw
+doc.recompute()
+
+lidbox =doc.addObject("Part::Feature","lidbox")
+lidbox.Label="lidbox"
+lidbox.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('screw')
+doc.removeObject('lidbox2')
+doc.recompute()
+
+
+FreeCADGui.getDocument("Unnamed").getObject("outerbox2").Transparency = 40
