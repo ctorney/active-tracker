@@ -517,8 +517,8 @@ doc.recompute()
 
 WALL_THICKNESS = 9
 
-MID_BOX_YMIN = 30 + 3 -10 - 3
-MID_BOX_YMAX = 50 - 3 - 5 - 1
+MID_BOX_YMIN = 20 #30 + 3 -10 - 3
+MID_BOX_YMAX = 41 # 50 - 3 - 5 - 1
 
 MID_BOX_LENGTH  = BOX_LENGTH #- WALL_THICKNESS
 
@@ -813,7 +813,7 @@ SCREW_OFFSET2 = 10
 
 SCREW_Z = BOX_HEIGHT-SCREW_OFFSET2
 
-SCREW_LENGTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*SCREW_Z/BOX_HEIGHT - 28
+SCREW_LENGTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*SCREW_Z/BOX_HEIGHT - 30
 
 # top front screw hole
 
@@ -824,11 +824,11 @@ screw1.Placement = App.Placement(App.Vector(SCREW_OFFSET,SCREW_LENGTH/2,BOX_HEIG
 
 
 
+
 screw2 = doc.addObject("Part::Cylinder","screw2")
 screw2.Height = SCREW_LENGTH
 screw2.Radius = SCREW_RADIUS + 1
 screw2.Placement = App.Placement(App.Vector(-SCREW_OFFSET,SCREW_LENGTH/2,BOX_HEIGHT-SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
-
 
 # cuts
 
@@ -912,7 +912,7 @@ SCREW_OFFSET2 = 10
 
 SCREW_Z = SCREW_OFFSET2
 
-SCREW_LENGTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*SCREW_Z/BOX_HEIGHT - 28
+SCREW_LENGTH = BOX_WIDTH + (BOX_WIDTH_TOP-BOX_WIDTH)*SCREW_Z/BOX_HEIGHT - 30
 
 # top front screw hole
 
@@ -928,6 +928,7 @@ screw2.Radius = SCREW_RADIUS
 screw2.Placement = App.Placement(App.Vector(-SCREW_OFFSET,SCREW_LENGTH/2,SCREW_OFFSET2),App.Rotation(App.Vector(1,0,0),90)) 
 
 
+
 #SCREW_BUFFER_RADIUS = 6
 #SCREW_BUFFER_LENGTH = BOX_WIDTH_TOP - 20
 
@@ -940,7 +941,7 @@ screw2.Placement = App.Placement(App.Vector(-SCREW_OFFSET,SCREW_LENGTH/2,SCREW_O
 
 basebox = doc.addObject("Part::Box", "basebox")
 basebox.Length = BOX_LENGTH - 6
-basebox.Width = BOX_LENGTH - 28
+basebox.Width = BOX_LENGTH - 30
 basebox.Height = SCREW_OFFSET2 + SCREW_RADIUS - 5
 basebox.Placement = App.Placement(App.Vector(-BOX_LENGTH/2 + 3,-BOX_LENGTH/2 + 14,0),App.Rotation(App.Vector(0,0,1),0)) 
 
@@ -1232,14 +1233,64 @@ doc.removeObject('coverbox2')
 #doc.removeObject('lidhole1')
 doc.removeObject('lidhole2')
 
-sys.exit()
 
 
 
 
 
 
+SCREW_RADIUS = 5
+SCREW_OFFSET = 14
 
+SLIDE_STOP_Z = 0.5*(TOP_BOX_YMIN + TOP_BOX_YMAX)
+
+SCREW_LENGTH = 15
+
+# top front screw hole
+screw1 = doc.addObject("Part::Cylinder","screw1")
+screw1.Height = SCREW_LENGTH
+screw1.Radius = SCREW_RADIUS
+screw1.Placement = App.Placement(App.Vector(-SCREW_OFFSET,0,SLIDE_STOP_Z),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+
+
+fusion = doc.addObject("Part::MultiFuse","fusion")
+doc.fusion.Shapes = [sideboxR2,screw1]
+doc.recompute()
+
+sideboxR =doc.addObject("Part::Feature","sideboxR")
+sideboxR .Shape=Part.Solid(Part.Shell(fusion.Shape.Faces))
+
+doc.removeObject(fusion.Label)
+doc.removeObject('screw1')
+doc.removeObject('sideboxR2')
+
+
+SCREW_RADIUS = 5 + 2* TOLERANCE
+
+
+# top front screw hole
+screw1 = doc.addObject("Part::Cylinder","screw1")
+screw1.Height = SCREW_LENGTH
+screw1.Radius = SCREW_RADIUS
+screw1.Placement = App.Placement(App.Vector(-SCREW_OFFSET,0,SLIDE_STOP_Z),App.Rotation(App.Vector(1,0,0),90)) 
+
+
+
+cut = doc.addObject("Part::Cut","Cut")
+doc.Cut.Base = sideboxL
+doc.Cut.Tool = screw1
+doc.recompute()
+
+sideboxL2 =doc.addObject("Part::Feature","sideboxL2")
+sideboxL2.Label="sideboxL2"
+sideboxL2.Shape=Part.Solid(Part.Shell(cut.Shape.Faces))
+
+doc.removeObject('Cut')
+doc.removeObject('sideboxL')
+doc.removeObject('screw1')
 
 
 
