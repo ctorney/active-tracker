@@ -29,7 +29,7 @@ LIPO_HEIGHT = 10
 
 CHIP_WIDTH = 82#90
 CHIP_LENGTH = 52
-CHIP_HEIGHT = 14
+CHIP_HEIGHT = 13
 
 
 SEAL_LENGTH = CHIP_LENGTH+3
@@ -42,15 +42,15 @@ bwt = SEAL_WIDTH + 4+ 4  # battery length top
 blt = SEAL_LENGTH + 4 + 4 # battery width top
 
 
-PANEL_WIDTH = 66
-PANEL_LENGTH = 66
+PANEL_WIDTH = 65
+PANEL_LENGTH = 65
 PANEL_HEIGHT = 3
 slb = blt + 4.5 #6 # sodaq length bottom = battery length top
 swb = bwt + 8 # sodaq width bottom
 slt = 63 # PANEL_LENGTH + 8 
-slt2 = PANEL_LENGTH + 4
+slt2 = PANEL_LENGTH + 6
 
-swt2 = PANEL_WIDTH + 4 # 24 +GROW
+swt2 = PANEL_WIDTH + 6 # 24 +GROW
 
 swt = 83 # PANEL_WIDTH + 13 # 24 +GROW
 
@@ -678,7 +678,6 @@ ScrewCut4.Placement = App.Placement(App.Vector(RIDER_HOLE_LENGTH/2,RIDER_HOLE_WI
 
 
 
-sys.exit()
 fusion = doc.addObject("Part::MultiFuse","fusion")
 doc.fusion.Shapes = [FullBase,ScrewCut1,ScrewCut2]
 doc.recompute()
@@ -1265,7 +1264,7 @@ doc.recompute()
 
 
 support1 = doc.addObject("Part::Ellipsoid","support1")
-doc.support1.Radius1=3.00
+doc.support1.Radius1=3.10
 doc.support1.Radius2=4.00
 doc.support1.Radius3=10.00
 doc.support1.Angle1=-90.00
@@ -1277,7 +1276,7 @@ doc.support1.Label='support1'
 
 
 support2 = doc.addObject("Part::Ellipsoid","support2")
-doc.support2.Radius1=3.00
+doc.support2.Radius1=3.10
 doc.support2.Radius2=4.00
 doc.support2.Radius3=10.00
 doc.support2.Angle1=-90.00
@@ -1289,7 +1288,7 @@ doc.support2.Label='support2'
 
 
 support3 = doc.addObject("Part::Ellipsoid","support3")
-doc.support3.Radius1=3.00
+doc.support3.Radius1=3.10
 doc.support3.Radius2=4.00
 doc.support3.Radius3=10.00
 doc.support3.Angle1=-90.00
@@ -1302,7 +1301,7 @@ doc.support3.Label='support3'
 
 
 support4 = doc.addObject("Part::Ellipsoid","support4")
-doc.support4.Radius1=3.00
+doc.support4.Radius1=3.10
 doc.support4.Radius2=4.00
 doc.support4.Radius3=10.00
 doc.support4.Angle1=-90.00
@@ -1314,7 +1313,7 @@ doc.support4.Label='support4'
 
 
 support5 = doc.addObject("Part::Ellipsoid","support5")
-doc.support5.Radius1=3.00
+doc.support5.Radius1=3.10
 doc.support5.Radius2=4.00
 doc.support5.Radius3=10.00
 doc.support5.Angle1=-90.00
@@ -1326,7 +1325,7 @@ doc.support5.Label='support5'
 
 
 support6 = doc.addObject("Part::Ellipsoid","support6")
-doc.support6.Radius1=3.00
+doc.support6.Radius1=3.10
 doc.support6.Radius2=4.00
 doc.support6.Radius3=10.00
 doc.support6.Angle1=-90.00
@@ -1338,7 +1337,6 @@ doc.support6.Label='support6'
 
 
 doc.recompute()
-
 
 
 
@@ -1997,7 +1995,7 @@ doc.recompute()
 gripperbox1 = doc.addObject("Part::Box", "gripperbox1")
 gripperbox1.Length = 7
 gripperbox1.Width = 10
-gripperbox1.Height = 14
+gripperbox1.Height = 13
 gripperbox1.Placement = App.Placement(App.Vector(-30,-24,4.6),App.Rotation(App.Vector(1,0,0),0)) 
 
 
