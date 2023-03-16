@@ -15,11 +15,11 @@
 Eloquent::TinyML::TensorFlow::TensorFlow<N_INPUTS, N_OUTPUTS, TENSOR_ARENA_SIZE> tf;
 
 
-const byte PIN_FLASH_CS = 32; // Change this to match the Chip Select pin on your board
+const byte PIN_FLASH_CS = 32; // 
 #include <SPI.h>
 #include <SparkFun_SPI_SerialFlash.h>
 SFE_SPI_FLASH myFlash;
-
+/// 8760 entries in flash - a full year 365*25 12 bytes for GPS, 49 bytes for imu
 
 #include "imu.h"
 
@@ -37,6 +37,10 @@ LoRaModem modem;
 
 uint32_t timer = millis();
 
+#define PMTK_ALWAYS_LOCATE "$PMTK225,9*22" 
+#define PMTK_BACKUP_MODE "$PMTK225,4*2F" 
+#define PMTK_ALWAYS_LOCATE_8 "$PMTK225,8*23" 
+#define GPS_WAKE_PIN 0
 
 
 unsigned long lastTime = 0;
@@ -45,6 +49,17 @@ unsigned int segment_counter = 0;
 
 float predict_data[N_INPUTS];
 float prediction[N_OUTPUTS];
+
+#include "LoraMessage.h" //https://github.com/thesolarnomad/lora-serialization
+
+typedef struct
+  {
+      uint32_t start_time;
+      byte activities[45];
+  }  activity_datum;
+
+record_type record[8];
+// 30 minutes of activities with 2 bits every 10 seconds gives 45 bytes
 
 
 #include <RTCZero.h>
@@ -56,8 +71,18 @@ RTCZero rtc;
 
 WDTZero WatchDogTimer; 
 
+bool GPS_ACTIVE = false;
+bool IMU_ACTIVE = false;
+bool LORA_ACTIVE = false;
 
 
+unsigned long gps_run_time = 1000*60*10;  // gps will run for up to 10 minutes to get a fix
+unsigned long imu_run_time = 1000*60*30;  // imu will run for 30 minutes every hour
+unsigned long lora_run_time = 1000*60*20; // lora will broadcast for up to 20 minutes every hour
+
+unsigned long gps_start_time = 0;  
+unsigned long imu_start_time = 0;  
+unsigned long lora_start_time = 0; 
 
 volatile bool GPS_DONE = true;
 volatile bool IMU_DONE = true;
@@ -66,6 +91,7 @@ volatile bool LORA_DONE = true;
 
 bool GPS_SLEEP = true;
 unsigned int imu_counter = 0;
+unsigned int bit_counter = 0;
 
 unsigned long gps_timer = 0;
 unsigned long gps_time_out = 1000*60*10;
@@ -111,10 +137,10 @@ void setup()
   delay(1);
   rtc.begin(); // initialize RTC
 
-  rtc.setAlarmTime(0, 15, 0);
+  rtc.setAlarmTime(0, 0, 0);
   rtc.enableAlarm(rtc.MATCH_MMSS);
   
-  rtc.attachInterrupt(quarter_hour_alarm);
+//  rtc.attachInterrupt(quarter_hour_alarm);
 
   Serial.print("\nWDTZero-Demo : Setup Soft Watchdog at 32S interval"); 
  WatchDogTimer.attachShutdown(wd_shutdown);
@@ -127,88 +153,149 @@ void wd_shutdown()
 }
 
 
-void quarter_hour_alarm()
+void wake_gps()
 {
-  WatchDogTimer.clear();
-  if (rtc.getMinutes()==0)
-  {
-    GPS_DONE = false;
-    IMU_DONE = false;
-    LORA_DONE = false;
-  }
-  Serial.println("Alarm Match!");
+   Serial.println("waking up gps");
+   gps_start_time = millis();
+   digitalWrite(GPS_WAKE_PIN, HIGH);
+   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
+   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_100_MILLIHERTZ);
+   GPS.sendCommand(PMTK_ALWAYS_LOCATE);
 }
+
+void pause_gps()
+{
+   Serial.println("pausing gps");
+   digitalWrite(GPS_WAKE_PIN, LOW);    
+//      GPS.sendCommand(PMTK_BACKUP_MODE);
+}
+
+bool waiting_on_first_fix = true;
+
+void update_time()
+{
+
+  if ((GPS.satellites>4)||(waiting_on_first_fix))
+  {
+      rtc.setTime(GPS.hour, GPS.minute, GPS.seconds);
+      rtc.setDate(GPS.day, GPS.month, GPS.year);
+      waiting_on_first_fix = false;
+  }
+}
+
+unsigned int imu_count;
+
 
 void loop() 
 {
-    if (GPS_DONE && IMU_DONE && LORA_DONE) rtc.standbyMode();
 
-    if (!GPS_DONE)
+    if ((!GPS_ACTIVE) && (!IMU_ACTIVE) && (!LORA_ACTIVE))
     {
-      if (GPS_SLEEP)
-      {
-        // wake up the GPS
-        gps_timer = millis();
-        GPS.wakeup();
-      }
+      // if nothing active then we are at the top of the hour so wake up the gps and imu
+      wake_gps();
+      GPS_ACTIVE=true;
+      IMU_ACTIVE=true;
+      gps_start_time = millis();
+      imu_start_time = millis();
+      imu_count = 0;
+      bit_count = 0;
+      memset(activities,0,sizeof(activities));
+
+    }
+
+
+    if (GPS_ACTIVE)
+    {
       char c = GPS.read();
       if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
+
+      if ((GPS.fix)&&(GPS.HDOP<1.0)|| ( millis() - gps_start_time >= gps_run_time) 
+      {
+         // either we got a fix or we're out of time
+         if (GPS.fix)
+         {
+             // TODO add an entry for lora broadcasting
+             update_time();
+         }
+         GPS_ACTIVE=false;
+         pause_gps();
+      }
+
+    }
+
+    if (IMU_ACTIVE)
+    {
+      if ((millis() - lastTime) >= 200) //To stream at 5 Hz without using additional timers
+      {
+        lastTime = millis();
+        //if (segment_counter==SEG_LENGTH) segment_counter=0;
+
+  
+        updateIMU(&predict_data[segment_counter*N_CHANNELS]);
+        segment_counter++;
+        if (segment_counter==SEG_LENGTH)
+        {
+          tf.predict(predict_data, prediction);
+          int activity = tf.probaToClass(prediction);
+          if (activity == 0) Serial.println("Walking");
+          if (activity == 1) Serial.println("Standing");
+          if (activity == 2) Serial.println("Sitting");
+          if (activity == 3) Serial.println("Lying");
+          segment_counter=0;
+          
+          switch (activity){
+              case 0:
+                break;
+              case 1:
+                bitWrite(activities[imu_counter], 2*bit_counter, 1);
+                break;
+              case 2:
+                bitWrite(activities[imu_counter], 2*bit_counter+1, 1);
+                break;
+              case 3:
+                bitWrite(activities[imu_counter], 2*bit_counter, 1);
+                bitWrite(activities[imu_counter], 2*bit_counter+1, 1);
+                break;
+            }
+
+          bit_counter++;
+
+          if (bit_counter == 4)
+          {
+           bit_counter = 0;
+           imu_counter++;
+          }
+
+          if (imu_counter == 45) 
+            IMU_ACTIVE = false
+        }
+      }
+    }
+
+
+    if ((!IMU_ACTIVE) && (!LORA_ACTIVE))
+    {
+      // add the readings to storage
+      // turn on lora
+      LORA_ACTIVE=true;
+      lora_start_time = millis();
+
       
     }
     
-  //return;
- 
-  // approximately every 2 seconds or so, print out the current stats
-  if (millis() - timer > 2000) {
-    timer = millis(); // reset the timer
-    Serial.print("\nTime: ");
-    if (GPS.hour < 10) { Serial.print('0'); }
-    Serial.print(GPS.hour, DEC); Serial.print(':');
-    if (GPS.minute < 10) { Serial.print('0'); }
-    Serial.print(GPS.minute, DEC); Serial.print(':');
-    if (GPS.seconds < 10) { Serial.print('0'); }
-    Serial.print(GPS.seconds, DEC); Serial.print('.');
-    if (GPS.milliseconds < 10) {
-      Serial.print("00");
-    } else if (GPS.milliseconds > 9 && GPS.milliseconds < 100) {
-      Serial.print("0");
-    }
-    Serial.println(GPS.milliseconds);
-    Serial.print("Date: ");
-    Serial.print(GPS.day, DEC); Serial.print('/');
-    Serial.print(GPS.month, DEC); Serial.print("/20");
-    Serial.println(GPS.year, DEC);
-    Serial.print("Fix: "); Serial.print((int)GPS.fix);
-    Serial.print(" quality: "); Serial.println((int)GPS.fixquality);
-    if (GPS.fix) {
-      Serial.print("Location: ");
-      Serial.print(GPS.latitude, 4); Serial.print(GPS.lat);
-      Serial.print(", ");
-      Serial.print(GPS.longitude, 4); Serial.println(GPS.lon);
-      Serial.print("Speed (knots): "); Serial.println(GPS.speed);
-      Serial.print("Angle: "); Serial.println(GPS.angle);
-      Serial.print("Altitude: "); Serial.println(GPS.altitude);
-      Serial.print("Satellites: "); Serial.println((int)GPS.satellites);
-    }
-  }
-
-  if ((millis() - lastTime) >= 200) //To stream at 5 Hz without using additional timers
-  {
-    lastTime = millis();
-     //if (segment_counter==SEG_LENGTH) segment_counter=0;
-
-  
-    updateIMU(&predict_data[segment_counter*N_CHANNELS]);
-    segment_counter++;
-    if (segment_counter==SEG_LENGTH)
+    if (LORA_ACTIVE)
     {
-      tf.predict(predict_data, prediction);
-      int activity = tf.probaToClass(prediction);
-      if (activity == 0) Serial.println("Walking");
-      if (activity == 1) Serial.println("Standing");
-      if (activity == 2) Serial.println("Sitting");
-      if (activity == 3) Serial.println("Lying");
-      segment_counter=0;
+
+      try_send();
+     if (millis() - lora_start_time >= lora_run_time) 
+     {
+
+      LORA_ACTIVE=false;
+     }
+
     }
-  }
+    
+    if ((!GPS_ACTIVE) && (!IMU_ACTIVE) && (!LORA_ACTIVE)) rtc.standbyMode();
+
+    
 }
