@@ -3,6 +3,11 @@
 
 #include <imuFilter.h>
 
+#include "tf_model.h"
+
+
+Eloquent::TinyML::TensorFlow::TensorFlow<N_INPUTS, N_OUTPUTS, TENSOR_ARENA_SIZE> tf;
+
 // Sensor fusion
 constexpr float GAIN = 0.1;     // Fusion gain, value between 0 and 1 - Determines response of heading correction with respect to gravity.
 imuFilter <&GAIN> fusion;
@@ -83,14 +88,15 @@ tf.begin(model_tflite);
 void activate()
 {
 
-        imu_count = 0;
-      bit_count = 0;
-      memset(activities,0,sizeof(activities));
+      int  imu_count = 0;
+      int bit_count = 0;
+//      memset(activities,0,sizeof(activities));
 
 }
 
 bool updateIMU(float *pdata)
 {
+  /*
 segment_counter++;
         if (segment_counter==SEG_LENGTH)
         {

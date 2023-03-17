@@ -1,6 +1,6 @@
 
 
-#include <SerialFlash.h>
+//#include <SerialFlash.h>
 #include <SPI.h>
 #include <MKRWAN.h>
 

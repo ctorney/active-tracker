@@ -4,13 +4,13 @@
 
 typedef struct
 {
-      uint32_t start_time;
+      long start_time;
       byte activities[45];
 }  activity_reading;
 
 typedef struct
 {
-      uint32_t start_time;
+      long start_time;
       float lat;
       float lon;
 }  location_reading;

@@ -12,10 +12,7 @@
 
 #define TENSOR_ARENA_SIZE 4*1024
 
-#include "tf_model.h"
 
-
-Eloquent::TinyML::TensorFlow::TensorFlow<N_INPUTS, N_OUTPUTS, TENSOR_ARENA_SIZE> tf;
 
 
 int initialiseIMU();

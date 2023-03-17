@@ -72,6 +72,18 @@ void setup()
 {
     Serial.begin(115200);
     delay(4000);
+      Serial.println("");
+
+      Serial.println("");
+      Serial.println("");
+
+  Serial.println("**********");
+  Serial.println("**********");
+
+    pinMode(LORA_RESET, OUTPUT);  //LORA reset pin declaration as output
+  digitalWrite(LORA_RESET, LOW);  //turn off LORA module
+  Serial.println("LoRa Off.");
+  delay(500);
     
   if (!storage.begin()) 
    {
@@ -79,7 +91,13 @@ void setup()
     
     }
    
-
+  rtc.begin(); // initialize RTC
+  Serial.print("\nWDTZero-Demo : Setup Soft Watchdog at 32S interval"); 
+ WatchDogTimer.attachShutdown(wd_shutdown);
+ WatchDogTimer.setup(WDT_SOFTCYCLE16S);  // initialize WDT-softcounter refesh cycle on 16m interval
+WatchDogTimer.clear();
+  while (true){}
+  
    if (!GPS.begin(I2C_ADDRESS)) 
    {
       Serial.println("ERROR: GPS");
@@ -104,21 +122,19 @@ void setup()
 //  Serial.print("Your device EUI is: ");
 //  Serial.println(modem.deviceEUI());
   delay(1);
-  rtc.begin(); // initialize RTC
+
 
   rtc.setAlarmTime(0, 0, 0);
   rtc.enableAlarm(rtc.MATCH_MMSS);
   
 //  rtc.attachInterrupt(quarter_hour_alarm);
 
-  Serial.print("\nWDTZero-Demo : Setup Soft Watchdog at 32S interval"); 
- WatchDogTimer.attachShutdown(wd_shutdown);
- WatchDogTimer.setup(WDT_SOFTCYCLE16M);  // initialize WDT-softcounter refesh cycle on 16m interval
 }
 
 void wd_shutdown()
 {
   Serial.print("\nshutting down ...");
+  storage.wd_shutdown();
 }
 
 
@@ -174,7 +190,7 @@ void loop()
       char c = GPS.read();
       if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
 
-      if ((GPS.fix)&&(GPS.HDOP<1.0)|| ( millis() - gps_start_time >= gps_run_time) 
+      if (((GPS.fix)&&(GPS.HDOP<1.0))|| ( millis() - gps_start_time >= gps_run_time) )
       {
          // either we got a fix or we're out of time
          if (GPS.fix)
