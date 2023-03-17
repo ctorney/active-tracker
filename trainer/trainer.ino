@@ -1,11 +1,11 @@
 
 
-uint8_t COLLAR_ID = 1;
+uint8_t COLLAR_ID = 4;
 
 #include <SPI.h>
 #include <WiFiNINA.h>
 #include <Wire.h>
-#include "WDTZero.h"
+//#include "WDTZero.h"
 #include <Adafruit_GPS.h>
 
 #include <Adafruit_ICM20X.h>
@@ -30,7 +30,7 @@ sensors_event_t gyro;
 sensors_event_t temp;
 
 RTCZero rtc;
-WDTZero wdt; 
+//WDTZero wdt; 
 
 WiFiServer server(23);
 
@@ -65,6 +65,9 @@ const unsigned long connectionWait = 1000*60*10; // switch off after 10 minutes 
 const unsigned long IMUEventInterval = 200; // 200 milliseconds so we record the IMU data at 5hz
 unsigned short imu_counter = 0; // keep track of the sequence of readings in a 10s batch
 const unsigned short imu_length = 50; // 10s batch at 5hz gives use 50 readings in a batch
+
+unsigned short window_counter = 0; // keep track of the number of windows that have been sent
+
 
 void setup() 
 {
@@ -174,9 +177,9 @@ void setup()
   rtc.setAlarmTime(00,00,00);
   rtc.enableAlarm(rtc.MATCH_MMSS);
 
-  const byte seconds = 00;
-  const byte minutes = 45;
-  const byte hours = 4;
+  const byte seconds = 50;//00;
+  const byte minutes = 59;//0;
+  const byte hours = 3;
 
   const byte day = 30 - COLLAR_ID;
 
@@ -212,7 +215,7 @@ void loop()
       return;
     }
 
-  wdt.clear();
+//  wdt.clear();
   
   unsigned long currentTime = millis();  
 
@@ -282,15 +285,15 @@ void process_gps()
 //  char c = GPS.read();
   if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
 //  if (!first_fix) 
-    if (GPS.fix)
-    {
-      first_fix=true;
-      // set to UTC
-      rtc.setTime(GPS.hour, GPS.minute, GPS.seconds);
-      rtc.setDate(GPS.day, GPS.month, GPS.year);
-      //GPS.standby();
-      //gps_on=false;
-    }
+  if (GPS.fix)
+  {
+    first_fix=true;
+    // set to UTC
+    rtc.setTime(GPS.hour, GPS.minute, GPS.seconds);
+    rtc.setDate(GPS.day, GPS.month, GPS.year);
+    //GPS.standby();
+    //gps_on=false;
+  }
   
       
    
@@ -307,11 +310,11 @@ bool check_time()
 
   // adjust for UTC - TZ is 3 hours ahead
   if (hour==7-3) return true;
-  if (hour==8-3) return true;
-  if (hour==9-3) return true;
-  if (hour==10-3) return true;
+//  if (hour==8-3) return true;
+//  if (hour==9-3) return true;
+//  if (hour==10-3) return true;
   if (hour==12-3) return true;
-  if (hour==14-3) return true;
+//  if (hour==14-3) return true;
   if (hour==16-3) return true;
   
   return false;
@@ -324,7 +327,7 @@ void deactivate()
   
   WiFi.end();
   active_mode=false;
-  wdt.setup(WDT_OFF);  //watchdog off
+//  wdt.setup(WDT_OFF);  //watchdog off
 
   if (first_fix && gps_on)
     {
@@ -353,12 +356,13 @@ void activate()
     
   filter.setup( ax,ay,az);   
   imu_counter=0;
+  window_counter=0;
   
   previousConnectionTime = millis();
   previousIMUTime = millis();
 
   // watchdog on
-  wdt.setup(WDT_SOFTCYCLE8S);  // initialize WDT-softcounter refesh cycle on 8sec interval
+//  wdt.setup(WDT_SOFTCYCLE8S);  // initialize WDT-softcounter refesh cycle on 8sec interval
 
 }
 
@@ -396,6 +400,8 @@ void update_imu()
   imu_counter++;
   imu_counter = imu_counter % imu_length;
 
+  if (imu_counter == 0) window_counter++;
+  
 }
 
 void output_imu()
@@ -412,6 +418,7 @@ void output_imu()
   server.print(minute, DEC); server.print(':');
   if (second < 10) { server.print('0'); }
   server.print(second, DEC); server.print(',');
+  server.print(window_counter); server.print(",");
   server.print(imu_counter); server.print(","); server.print(imu_data[0]); server.print(","); server.print(imu_data[1]);
   server.print(","); server.print(imu_data[2]); server.print(","); server.print(imu_data[3]); server.print(",");
   server.print(imu_data[4]);server.print(",");server.println(imu_data[0]+imu_data[1]+imu_data[2]+imu_data[3]+imu_data[4]);

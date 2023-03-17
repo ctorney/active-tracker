@@ -1,34 +1,14 @@
-#include <EloquentTinyML.h>
-#include <eloquent_tinyml/tensorflow.h>
+
 #include <Wire.h>
 
-#include "tf_model.h"
-
-#define N_CHANNELS 5
-#define SEG_LENGTH 50
-
-#define N_INPUTS SEG_LENGTH*N_CHANNELS
-#define N_OUTPUTS 4
-
-#define TENSOR_ARENA_SIZE 4*1024
-
-Eloquent::TinyML::TensorFlow::TensorFlow<N_INPUTS, N_OUTPUTS, TENSOR_ARENA_SIZE> tf;
 
 
-const byte PIN_FLASH_CS = 32; // 
-#include <SPI.h>
-#include <SparkFun_SPI_SerialFlash.h>
-SFE_SPI_FLASH myFlash;
-/// 8760 entries in flash - a full year 365*25 12 bytes for GPS, 49 bytes for imu
-
-#include "imu.h"
+#include "storage.h"
+#include "classifier.h"
 
 #include <Adafruit_GPS.h>
 Adafruit_GPS GPS(&Wire);
 
-#include <MKRWAN_v2.h>
-
-LoRaModem modem;
 
 #define SECRET_APP_EUI "xxxxxxxxxxxxx"
 #define SECRET_APP_KEY "yyyyyyyyyyyyyyyyyyyyyyy"
@@ -52,13 +32,8 @@ float prediction[N_OUTPUTS];
 
 #include "LoraMessage.h" //https://github.com/thesolarnomad/lora-serialization
 
-typedef struct
-  {
-      uint32_t start_time;
-      byte activities[45];
-  }  activity_datum;
 
-record_type record[8];
+//record_type record[8];
 // 30 minutes of activities with 2 bits every 10 seconds gives 45 bytes
 
 
@@ -71,22 +46,19 @@ RTCZero rtc;
 
 WDTZero WatchDogTimer; 
 
+Storage storage;
+
 bool GPS_ACTIVE = false;
 bool IMU_ACTIVE = false;
 bool LORA_ACTIVE = false;
 
 
 unsigned long gps_run_time = 1000*60*10;  // gps will run for up to 10 minutes to get a fix
-unsigned long imu_run_time = 1000*60*30;  // imu will run for 30 minutes every hour
 unsigned long lora_run_time = 1000*60*20; // lora will broadcast for up to 20 minutes every hour
 
 unsigned long gps_start_time = 0;  
-unsigned long imu_start_time = 0;  
 unsigned long lora_start_time = 0; 
 
-volatile bool GPS_DONE = true;
-volatile bool IMU_DONE = true;
-volatile bool LORA_DONE = true;
 
 
 bool GPS_SLEEP = true;
@@ -100,40 +72,37 @@ void setup()
 {
     Serial.begin(115200);
     delay(4000);
-    tf.begin(model_tflite);
-
-    // check if model loaded fine
-    if (!tf.isOk()) {
-      Serial.print("ERROR: ");
-      Serial.println(tf.getErrorMessage());
-      while (true) delay(1000);
+    
+  if (!storage.begin()) 
+   {
+      Serial.println("ERROR: storage");
+    
     }
-
    
 
    if (!GPS.begin(I2C_ADDRESS)) 
-  {
-    Serial.println("ERROR: GPS");
+   {
+      Serial.println("ERROR: GPS");
     
-  }
+    }
 
   //GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_100_MILLIHERTZ);
-  GPS.sendCommand(PMTK_API_SET_FIX_CTL_100_MILLIHERTZ);
+  GPS.sendCommand(PMTK_ALWAYS_LOCATE_8);
   
 
-   if (!initialiseIMU())  {Serial.println("ERROR: ICM ");}
+//   if (!initialiseIMU())  {Serial.println("ERROR: ICM ");}
    Serial.println("initialised...");
 
-  if (!modem.begin(EU868)) {
-    Serial.println("Failed to start module");
-    while (1) {}
-  };
-  Serial.print("Your module version is: ");
-  Serial.println(modem.version());
-  Serial.print("Your device EUI is: ");
-  Serial.println(modem.deviceEUI());
+//  if (!modem.begin(EU868)) {
+//    Serial.println("Failed to start module");
+//    while (1) {}
+//  };
+//  Serial.print("Your module version is: ");
+//  Serial.println(modem.version());
+//  Serial.print("Your device EUI is: ");
+//  Serial.println(modem.deviceEUI());
   delay(1);
   rtc.begin(); // initialize RTC
 
@@ -196,10 +165,6 @@ void loop()
       GPS_ACTIVE=true;
       IMU_ACTIVE=true;
       gps_start_time = millis();
-      imu_start_time = millis();
-      imu_count = 0;
-      bit_count = 0;
-      memset(activities,0,sizeof(activities));
 
     }
 
@@ -228,47 +193,7 @@ void loop()
       if ((millis() - lastTime) >= 200) //To stream at 5 Hz without using additional timers
       {
         lastTime = millis();
-        //if (segment_counter==SEG_LENGTH) segment_counter=0;
-
-  
-        updateIMU(&predict_data[segment_counter*N_CHANNELS]);
-        segment_counter++;
-        if (segment_counter==SEG_LENGTH)
-        {
-          tf.predict(predict_data, prediction);
-          int activity = tf.probaToClass(prediction);
-          if (activity == 0) Serial.println("Walking");
-          if (activity == 1) Serial.println("Standing");
-          if (activity == 2) Serial.println("Sitting");
-          if (activity == 3) Serial.println("Lying");
-          segment_counter=0;
-          
-          switch (activity){
-              case 0:
-                break;
-              case 1:
-                bitWrite(activities[imu_counter], 2*bit_counter, 1);
-                break;
-              case 2:
-                bitWrite(activities[imu_counter], 2*bit_counter+1, 1);
-                break;
-              case 3:
-                bitWrite(activities[imu_counter], 2*bit_counter, 1);
-                bitWrite(activities[imu_counter], 2*bit_counter+1, 1);
-                break;
-            }
-
-          bit_counter++;
-
-          if (bit_counter == 4)
-          {
-           bit_counter = 0;
-           imu_counter++;
-          }
-
-          if (imu_counter == 45) 
-            IMU_ACTIVE = false
-        }
+        IMU_ACTIVE = updateIMU(&predict_data[segment_counter*N_CHANNELS]);
       }
     }
 
@@ -279,17 +204,15 @@ void loop()
       // turn on lora
       LORA_ACTIVE=true;
       lora_start_time = millis();
-
-      
+     
     }
     
     if (LORA_ACTIVE)
     {
 
-      try_send();
+     // try_send();
      if (millis() - lora_start_time >= lora_run_time) 
      {
-
       LORA_ACTIVE=false;
      }
 

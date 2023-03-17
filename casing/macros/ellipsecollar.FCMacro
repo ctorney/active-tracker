@@ -1313,7 +1313,6 @@ doc.removeObject(arduinobox2b.Label)
 doc.removeObject(fusion.Label)
 
 
-
 CUT_LIPO_BOX_HEIGHT2=50
 lipobox2 = doc.addObject("Part::Box", "lipobox2")
 LIPO_BOX_HEIGHT2 = 2
@@ -1322,20 +1321,48 @@ lipobox2.Width = bwt+0.5
 lipobox2.Height = CUT_LIPO_BOX_HEIGHT2  
 lipobox2.Placement = App.Placement(App.Vector(-(blt+4)/2,-(bwt+0.5)/2,-LIPO_BOX_HEIGHT-CUT_LIPO_BOX_HEIGHT2+3),App.Rotation(App.Vector(0,0,1),0)) 
 
+
+
+fillet = doc.addObject("Part::Fillet","Fillet")
+fillet.Base = lipobox2
+__fillets__ = []
+__fillets__.append((10,2.00,2.00))
+__fillets__.append((12,2.00,2.00))
+
+fillet.Edges = __fillets__
+del __fillets__
+
+doc.recompute()
+
+
+lipobox3 = App.ActiveDocument.addObject("Part::Feature","lipobox3")
+lipobox3.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
+
+doc.removeObject('Fillet')
+doc.removeObject('lipobox2')
+
+
+doc.recompute()
+
+
+
+
+
+
+
 cutchipbox2 = doc.addObject("Part::Cut","cutchipbox2")
 cutchipbox2.Base = arduinobox2
-cutchipbox2.Tool = lipobox2
+cutchipbox2.Tool = lipobox3
 doc.recompute()
 
 arduinobox3 =doc.addObject("Part::Feature","arduinobox3")
 arduinobox3 .Label="arduinobox3"
 arduinobox3 .Shape=Part.Solid(Part.Shell(cutchipbox2.Shape.Faces))
 
-doc.removeObject('lipobox2')
+doc.removeObject('lipobox3')
 doc.removeObject('cutchipbox2')
 doc.removeObject('arduinobox2')
 
-#sys.exit('bye')
 
 
 ## MAKE THE OUTER ELLIPSE FOR COLLAR
@@ -1414,9 +1441,9 @@ __fillets__.append((15,2.00,2.00))
 __fillets__.append((16,2.00,2.00))
 
 __fillets__.append((25,2.00,2.00))
-__fillets__.append((40,2.00,2.00))
-__fillets__.append((50,2.00,2.00))
-__fillets__.append((57,2.00,2.00))
+__fillets__.append((42,2.00,2.00))
+__fillets__.append((54,2.00,2.00))
+__fillets__.append((63,2.00,2.00))
 
 
 fillet.Edges = __fillets__
@@ -1671,7 +1698,6 @@ lipobox.Ymax = LIPO_HEIGHT + 3 - PLATE_THICKNESS  # 10 mm for lipo, 3 for tolera
 
 
 lipobox.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
-
 
 
 cutchipbox = doc.addObject("Part::Cut","cutchipbox")
@@ -2231,36 +2257,14 @@ doc.removeObject('baseplate')
 
 doc.recompute()
 
-arduinobox = doc.addObject('Part::Feature','arduinobox')
-arduinobox.Shape=doc.arduinobox2.Shape.removeSplitter()
-arduinobox.Label="arduinobox"
+#arduinobox = doc.addObject('Part::Feature','arduinobox')
+#arduinobox.Shape=doc.arduinobox2.Shape.removeSplitter()
+#arduinobox.Label="arduinobox"
 
-doc.removeObject(arduinobox2.Label)
+#doc.removeObject(arduinobox2.Label)
 
-doc.recompute()
+#doc.recompute()
 
-
-fillet = doc.addObject("Part::Fillet","Fillet")
-fillet.Base = arduinobox
-__fillets__ = []
-__fillets__.append((378,2.00,2.00))
-__fillets__.append((379,2.00,2.00))
-__fillets__.append((380,2.00,2.00))
-__fillets__.append((381,2.00,2.00))
-fillet.Edges = __fillets__
-del __fillets__
-
-doc.recompute()
-
-
-arduinobox2 = App.ActiveDocument.addObject("Part::Feature","arduinobox2")
-arduinobox2.Shape=Part.Solid(Part.Shell(fillet.Shape.Faces))
-
-doc.removeObject('Fillet')
-doc.removeObject('arduinobox')
-
-
-doc.recompute()
 
 #FreeCADGui.getDocument("Unnamed").getObject("arduinobox2").Transparency = 40
 #FreeCADGui.getDocument("Unnamed").getObject("baseplate2").Transparency = 40

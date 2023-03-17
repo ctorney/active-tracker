@@ -1,4 +1,6 @@
 
+
+//#define LORA_DEBUG Serial
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GPS.h>
@@ -8,7 +10,7 @@
 
 #define GPS_I2C_ADDRESS 0x10
 
-#include <MKRWAN.h>
+#include <MKRWAN_v2.h>
 
 LoRaModem modem;
 
@@ -55,8 +57,14 @@ void setup() {
   Serial.println(modem.version());
   Serial.print("Your device EUI is: ");
   Serial.println(modem.deviceEUI());
+  modem.dataRate(0);
+  modem.setADR(false);
+  Serial.print("Your device data rate is: ");
+  Serial.println(modem.getDataRate());
+  Serial.print("Your device ADR is: ");
+  Serial.println(modem.getADR());
 
-  modem.sleep();
+//  modem.sleep();
 
   
 }
@@ -64,7 +72,7 @@ void setup() {
 
 
 unsigned long previousConnectionTime = 0;  
-const unsigned long connectionInterval = 1000*60*2; // 2 minute intervals try and send
+const unsigned long connectionInterval = 1000*60*10  ; // 10 minute intervals try and send
 
 void loop() 
 {
@@ -87,6 +95,8 @@ void loop()
 void send_lora()
 {
 
+  Serial.println("Connecting....");
+
      
   digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
   
@@ -94,9 +104,11 @@ void send_lora()
     return;
   }
   
-  String appEui = "0000000000000000";
+  String appEui = "0101010101010101";
   String appKey = "283E729D21445192C9A0E4B844D97838";
   String devEui = modem.deviceEUI();
+  Serial.println("Sending message....");
+
   int connected = modem.joinOTAA(appEui, appKey, devEui);
   
   if (!connected) {
@@ -168,7 +180,7 @@ void send_lora()
   }
   modem.poll();
 
-  modem.sleep();
+//  modem.sleep();
 
   digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
     

@@ -35,7 +35,7 @@ PANEL_LENGTH = 55
 PANEL_HEIGHT = 2
 slb = blt # sodaq length bottom = battery length top
 swb = bwt # sodaq width bottom
-slt = PANEL_WIDTH + 24 +GROW
+slt = PANEL_WIDTH + 12 # 24 +GROW
 swt = PANEL_LENGTH + 8 #12 
 
 
@@ -439,24 +439,39 @@ CHIP_WIDTH = 82
 CHIP_LENGTH = 52
 CHIP_HEIGHT = 22 # MAX_HEIGHT-6-PANEL_HEIGHT-1 -3 #7-PANEL_HEIGHT
 
-ChipCutterBox1 = doc.addObject("Part::Box", "ChipCutterBox1")
-ChipCutterBox1.Length = CHIP_LENGTH+2+3 - 2
-ChipCutterBox1.Width = CHIP_WIDTH+2+3
-ChipCutterBox1.Height = CHIP_HEIGHT#+1
-ChipCutterBox1.Placement = App.Placement(App.Vector(-(CHIP_LENGTH+5 - 2)/2,-(CHIP_WIDTH+5)/2,LIPO_HEIGHT + 3 - PLATE_THICKNESS ),App.Rotation(App.Vector(0,0,1),0)) 
+#ChipCutterBox1 = doc.addObject("Part::Box", "ChipCutterBox1")
+#ChipCutterBox1.Length = CHIP_LENGTH+2+3 - 2
+#ChipCutterBox1.Width = CHIP_WIDTH+2+3
+#ChipCutterBox1.Height = CHIP_HEIGHT#+1
+#ChipCutterBox1.Placement = App.Placement(App.Vector(-(CHIP_LENGTH+3)/2,-(CHIP_WIDTH+5)/2,LIPO_HEIGHT + 3 - PLATE_THICKNESS ),App.Rotation(App.Vector(0,0,1),0)) 
+
+ChipCutterBox1 = doc.addObject("Part::Wedge", "ChipCutterBox1")
+ChipCutterBox1.Xmin = -(CHIP_LENGTH+3)/2
+ChipCutterBox1.X2min = -(CHIP_LENGTH+3)/2
+ChipCutterBox1.Xmax = (CHIP_LENGTH+3)/2
+ChipCutterBox1.X2max = (CHIP_LENGTH+3)/2
+
+ChipCutterBox1.Zmin = -(CHIP_WIDTH+5)/2
+ChipCutterBox1.Z2min = -(CHIP_WIDTH+2)/2
+ChipCutterBox1.Zmax = (CHIP_WIDTH+5)/2
+ChipCutterBox1.Z2max = (CHIP_WIDTH+2)/2
+
+ChipCutterBox1.Ymin = LIPO_HEIGHT + 3 - PLATE_THICKNESS 
+ChipCutterBox1.Ymax = CHIP_HEIGHT + LIPO_HEIGHT + 3 - PLATE_THICKNESS 
+ChipCutterBox1.Placement = App.Placement(App.Vector(0,0,0),App.Rotation(App.Vector(1,0,0),90)) 
 
 
 
 fillet = doc.addObject("Part::Fillet","Fillet")
 fillet.Base = ChipCutterBox1
 __fillets__ = []
-__fillets__.append((1,2.00,2.00))
 __fillets__.append((2,2.00,2.00))
 __fillets__.append((3,2.00,2.00))
-__fillets__.append((5,2.00,2.00))
+__fillets__.append((4,2.00,2.00))
 __fillets__.append((6,2.00,2.00))
 __fillets__.append((7,2.00,2.00))
-__fillets__.append((10,2.00,2.00))
+__fillets__.append((8,2.00,2.00))
+__fillets__.append((11,2.00,2.00))
 __fillets__.append((12,2.00,2.00))
 fillet.Edges = __fillets__
 del __fillets__
@@ -526,7 +541,7 @@ M4_THREAD_DIAM = 3.6
 ScrewCut1 = doc.addObject("Part::Cylinder","ScrewCut1")
 ScrewCut1.Height = 100+MAX_HEIGHT + PLATE_THICKNESS
 ScrewCut1.Radius = M4_THREAD_DIAM/2
-ScrewCut1.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,-slt/2 -FRONT_OFFSET ,-50),App.Rotation(App.Vector(0,1,0),0)) 
+ScrewCut1.Placement = App.Placement(App.Vector(-swt/2+SIDE_OFFSET,-slt/2 - 12 -FRONT_OFFSET ,-50),App.Rotation(App.Vector(1,0,0),-10)) 
 
 
 

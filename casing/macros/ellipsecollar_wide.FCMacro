@@ -874,7 +874,7 @@ usbcutbox = doc.addObject("Part::Box", "usbcutbox")
 usbcutbox.Length = USB_LENGTH
 usbcutbox.Width = USB_WIDTH
 usbcutbox.Height = USB_HEIGHT
-usbcutbox.Placement = App.Placement(App.Vector((LIPO_LENGTH)/2-USB_LENGTH-2,(LIPO_WIDTH)/2-USB_WIDTH+4,CHIPBOX_MIN- USB_HEIGHT ),App.Rotation(App.Vector(0,0,1),0)) 
+usbcutbox.Placement = App.Placement(App.Vector(-(LIPO_LENGTH)/2+USB_LENGTH-2,-(LIPO_WIDTH)/2+USB_WIDTH,CHIPBOX_MIN- USB_HEIGHT ),App.Rotation(App.Vector(0,0,1),0)) 
 #
 
 doc.recompute()
@@ -1617,10 +1617,10 @@ doc.recompute()
 
 
 PanelCutterBox = doc.addObject("Part::Box", "PanelCutterBox")
-PanelCutterBox.Length = PANEL_LENGTH+1
-PanelCutterBox.Width = PANEL_WIDTH+1
+PanelCutterBox.Length = PANEL_LENGTH+0.5
+PanelCutterBox.Width = PANEL_WIDTH+0.5
 PanelCutterBox.Height = PANEL_HEIGHT+1
-PanelCutterBox.Placement = App.Placement(App.Vector(-(PANEL_LENGTH+2)/2,-(PANEL_WIDTH+2)/2,MAX_HEIGHT-PANEL_HEIGHT-1),App.Rotation(App.Vector(0,0,1),0)) 
+PanelCutterBox.Placement = App.Placement(App.Vector(-(PANEL_LENGTH+1)/2,-(PANEL_WIDTH+1)/2,MAX_HEIGHT-PANEL_HEIGHT-1),App.Rotation(App.Vector(0,0,1),0)) 
 
 doc.recompute()
 cutpanelbox = doc.addObject("Part::Cut","cutpanelbox")
@@ -1892,8 +1892,8 @@ doc.removeObject("sealbox")
 
 ellipse = doc.addObject("Part::Ellipsoid","Ellipsoid")
 doc.Ellipsoid.Radius1=20.00
-doc.Ellipsoid.Radius2=10.00
-doc.Ellipsoid.Radius3=25.00
+doc.Ellipsoid.Radius2=6.00
+doc.Ellipsoid.Radius3=15.00
 doc.Ellipsoid.Angle1=-90.00
 doc.Ellipsoid.Angle2=90.00
 doc.Ellipsoid.Angle3=360.00
@@ -1901,7 +1901,6 @@ doc.Ellipsoid.Placement=App.Placement(App.Vector(0.00,0.00,MAX_HEIGHT),App.Rotat
 doc.Ellipsoid.Label='Ellipsoid'
 
 doc.recompute()
-
 
 
 

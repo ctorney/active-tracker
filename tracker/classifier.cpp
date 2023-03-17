@@ -1,5 +1,5 @@
 
-#include "imu.h"
+#include "classifier.h"
 
 #include <imuFilter.h>
 
@@ -63,6 +63,15 @@ int initialiseIMU()
       return 0;
     }
 */
+
+tf.begin(model_tflite);
+
+    // check if model loaded fine
+    if (!tf.isOk()) {
+      Serial.print("ERROR: ");
+      Serial.println(tf.getErrorMessage());
+      while (true) delay(1000);
+    }
     if (!icm.begin_I2C()) {
       Serial.println("ERROR: ICM ");
       return 0;
@@ -71,10 +80,54 @@ int initialiseIMU()
   
 }
 
-
-void updateIMU(float *pdata)
+void activate()
 {
 
+        imu_count = 0;
+      bit_count = 0;
+      memset(activities,0,sizeof(activities));
+
+}
+
+bool updateIMU(float *pdata)
+{
+segment_counter++;
+        if (segment_counter==SEG_LENGTH)
+        {
+          tf.predict(predict_data, prediction);
+          int activity = tf.probaToClass(prediction);
+          if (activity == 0) Serial.println("Walking");
+          if (activity == 1) Serial.println("Standing");
+          if (activity == 2) Serial.println("Sitting");
+          if (activity == 3) Serial.println("Lying");
+          segment_counter=0;
+          
+          switch (activity){
+              case 0:
+                break;
+              case 1:
+                bitWrite(activities[imu_counter], 2*bit_counter, 1);
+                break;
+              case 2:
+                bitWrite(activities[imu_counter], 2*bit_counter+1, 1);
+                break;
+              case 3:
+                bitWrite(activities[imu_counter], 2*bit_counter, 1);
+                bitWrite(activities[imu_counter], 2*bit_counter+1, 1);
+                break;
+            }
+
+          bit_counter++;
+
+          if (bit_counter == 4)
+          {
+           bit_counter = 0;
+           imu_counter++;
+          }
+
+          if (imu_counter == 45) 
+            IMU_ACTIVE = false
+        }
   icm.getEvent(&accel, &gyro, &temp);
   
 
@@ -101,5 +154,5 @@ void updateIMU(float *pdata)
      return activity;
    }
    */
-   return;
+   return true;
 }
