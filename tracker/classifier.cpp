@@ -1,20 +1,17 @@
-
 #include "classifier.h"
-
 #include <imuFilter.h>
-
 #include "tf_model.h"
+#include <Adafruit_ICM20X.h>
+#include <Adafruit_ICM20649.h>
+#include <Adafruit_Sensor.h>
 
 
 Eloquent::TinyML::TensorFlow::TensorFlow<N_INPUTS, N_OUTPUTS, TENSOR_ARENA_SIZE> tf;
 
-// Sensor fusion
-constexpr float GAIN = 0.1;     // Fusion gain, value between 0 and 1 - Determines response of heading correction with respect to gravity.
-imuFilter <&GAIN> fusion;
 
-#include <Adafruit_ICM20X.h>
-#include <Adafruit_ICM20649.h>
-#include <Adafruit_Sensor.h>
+
+
+
 
 Adafruit_ICM20649 icm;
 
@@ -22,143 +19,157 @@ sensors_event_t accel;
 sensors_event_t gyro;
 sensors_event_t temp;
 
-/*
-#include <Adafruit_ICM20X.h>
-#include <Adafruit_ICM20649.h>
-#include <Adafruit_Sensor.h>
-#include <Wire.h>
 
 
-#include <EloquentTinyML.h>
-#include <eloquent_tinyml/tensorflow.h>
+constexpr float GAIN = 0.75;     // Fusion gain determines response of heading correction with respect to gravity.
+imuFilter <&GAIN> filter;
 
-#include "tf_model.h"
-
-#define N_CHANNELS 5
-#define SEG_LENGTH 50
-
-#define N_INPUTS SEG_LENGTH*N_CHANNELS
-#define N_OUTPUTS 4
-
-#define TENSOR_ARENA_SIZE 5432
-
-Eloquent::TinyML::TensorFlow::TensorFlow<N_INPUTS, N_OUTPUTS, TENSOR_ARENA_SIZE> tf;
-
-sensors_event_t accel;
-sensors_event_t gyro;
-sensors_event_t temp;
-  
-unsigned int segment_counter = 0;
-
-float predict_data[N_INPUTS];
-float prediction[N_OUTPUTS];
+float acc_bias[3] = {0.0f, 0.0f, SENSORS_GRAVITY_EARTH};
+float gyro_bias[3] = {0.0f, 0.0f, 0.0f};
+float angle_bias[2] = {0.0f, 0.0f};
 
 
-Adafruit_ICM20649 icm;
-*/
-int initialiseIMU()
-{
-/*
-    tf.begin(model_tflite);
+constexpr float bias_gain = 0.00001;     // averaging decay rate - should be very low.
 
-    // check model
-    if (!tf.isOk()) {
+
+
+bool Classifier::begin() {
+  if (!icm.begin_I2C()) 
+  {
+    Serial.println("ERROR: ICM ");
+    return false;
+  }
+
+  tf.begin(model_tflite);
+
+ // check if model loaded fine
+ if (!tf.isOk()) {
       Serial.print("ERROR: ");
       Serial.println(tf.getErrorMessage());
-      return 0;
+      return false;
     }
-*/
-
-tf.begin(model_tflite);
-
-    // check if model loaded fine
-    if (!tf.isOk()) {
-      Serial.print("ERROR: ");
-      Serial.println(tf.getErrorMessage());
-      while (true) delay(1000);
-    }
-    if (!icm.begin_I2C()) {
-      Serial.println("ERROR: ICM ");
-      return 0;
-    }
-    return 1;
   
-}
+  icm.setAccelRateDivisor(225);
+  icm.setGyroRateDivisor(225);
 
-void activate()
-{
 
-      int  imu_count = 0;
-      int bit_count = 0;
-//      memset(activities,0,sizeof(activities));
+  icm.enableAccelDLPF(true, ICM20X_ACCEL_FREQ_5_7_HZ);
+  icm.enableGyrolDLPF(true, ICM20X_GYRO_FREQ_5_7_HZ);
+  delay(500);
 
-}
-
-bool updateIMU(float *pdata)
-{
-  /*
-segment_counter++;
-        if (segment_counter==SEG_LENGTH)
-        {
-          tf.predict(predict_data, prediction);
-          int activity = tf.probaToClass(prediction);
-          if (activity == 0) Serial.println("Walking");
-          if (activity == 1) Serial.println("Standing");
-          if (activity == 2) Serial.println("Sitting");
-          if (activity == 3) Serial.println("Lying");
-          segment_counter=0;
-          
-          switch (activity){
-              case 0:
-                break;
-              case 1:
-                bitWrite(activities[imu_counter], 2*bit_counter, 1);
-                break;
-              case 2:
-                bitWrite(activities[imu_counter], 2*bit_counter+1, 1);
-                break;
-              case 3:
-                bitWrite(activities[imu_counter], 2*bit_counter, 1);
-                bitWrite(activities[imu_counter], 2*bit_counter+1, 1);
-                break;
-            }
-
-          bit_counter++;
-
-          if (bit_counter == 4)
-          {
-           bit_counter = 0;
-           imu_counter++;
-          }
-
-          if (imu_counter == 45) 
-            IMU_ACTIVE = false
-        }
   icm.getEvent(&accel, &gyro, &temp);
-  
+  float ax = float(accel.acceleration.x);
+  float ay = float(accel.acceleration.y);
+  float az = float(accel.acceleration.z);
+    
+  acc_bias[2] = pow( ax*ax + ay*ay + az*az,0.5) ;
+  filter.setup( ax,ay,az);     
 
-  // reset the segment counter
-  pdata[0] = float(gyro.gyro.x) / 16.00;
-  pdata[1] = float(gyro.gyro.y) / 16.00;
-  pdata[2] = float(accel.acceleration.x);
-  pdata[3] = float(accel.acceleration.y);
-  pdata[4] = float(accel.acceleration.z);
-/*  
+  Serial.println("IMU setup");
+
+  return true;
+
+}
+
+
+void Classifier::activate(long unixtime){
+
+  latest_activity.start_time = unixtime;
+
+  memset(latest_activity.activities,0,sizeof(latest_activity.activities));
+  
+  icm.getEvent(&accel, &gyro, &temp);
+  float ax = float(accel.acceleration.x);
+  float ay = float(accel.acceleration.y);
+  float az = float(accel.acceleration.z);
+    
+  filter.setup( ax,ay,az);   
+  imu_counter=0;
+  bit_counter=0;
+  segment_counter=0;
+}
+
+
+bool Classifier::update(){
+
+  update_imu(&predict_data[segment_counter*N_CHANNELS]);
   segment_counter++;
   if (segment_counter==SEG_LENGTH)
   {
-    segment_counter=0;
-    
+
     tf.predict(predict_data, prediction);
     int activity = tf.probaToClass(prediction);
-    Serial.println(activity);
-  /*    if (activity == 0) Serial.println("Walking");
-      if (activity == 1) Serial.println("Standing");
-      if (activity == 2) Serial.println("Sitting");
-      if (activity == 3) Serial.println("Lying"); * /
-     segment_counter=0;
-     return activity;
-   }
-   */
-   return true;
+
+    // FOR DEBUGGING ONLY!!!!!!!!!!
+    // WE'LL SET ACTIVITY TO BE EQUAL TO THE BIT_COUNTER FOR THE FIRST HALF
+    // THEN EQUAL TO 4 - BIT_COUNTER FOR THE SECOND HALF
+    activity = 3 - bit_counter;
+    if (imu_counter<23)
+    {
+      activity = bit_counter;
+    }
+    // END OF DEBUGGING CODE 
+    // DELETE BEFORE DEPLOYMENT TO USE THE REAL CNN PREDICTIONS
+
+    segment_counter=0;
+    
+    switch (activity){
+        case 0:
+          break;
+        case 1:
+          bitWrite(latest_activity.activities[imu_counter], 2*bit_counter, 1);
+          break;
+        case 2:
+          bitWrite(latest_activity.activities[imu_counter], 2*bit_counter+1, 1);
+          break;
+        case 3:
+          bitWrite(latest_activity.activities[imu_counter], 2*bit_counter, 1);
+          bitWrite(latest_activity.activities[imu_counter], 2*bit_counter+1, 1);
+          break;
+      }
+
+    bit_counter++;
+
+    if (bit_counter == BIT_LENGTH)
+    {
+     bit_counter = 0;
+     imu_counter++;
+    }
+
+    if (imu_counter == SERIES_LENGTH) 
+      return false;
+  }
+  return true;
+}
+
+void Classifier::update_imu(float *pdata){
+  icm.getEvent(&accel, &gyro, &temp);
+  float gx = float(gyro.gyro.x);
+  float gy = float(gyro.gyro.y); 
+  float gz = float(gyro.gyro.z); 
+  float ax = float(accel.acceleration.x);
+  float ay = float(accel.acceleration.y);
+  float az = float(accel.acceleration.z);
+  filter.update(gx, gy, gz, ax, ay, az);
+
+  float pitch = float(filter.pitch());
+  float roll = float(filter.roll());
+  float v[3] = { ax, ay, az };
+
+  filter.projectVector( true, v );
+
+  acc_bias[0] = (1.0-bias_gain)*acc_bias[0] + bias_gain*v[0];
+  acc_bias[1] = (1.0-bias_gain)*acc_bias[1] + bias_gain*v[1];
+  acc_bias[2] = (1.0-bias_gain)*acc_bias[2] + bias_gain*v[2];
+
+  angle_bias[0] = (1.0-bias_gain)*angle_bias[0] + bias_gain*pitch;
+  angle_bias[1] = (1.0-bias_gain)*angle_bias[1] + bias_gain*roll;
+
+  pdata[0] = v[0]-acc_bias[0];
+  pdata[1] = v[1]-acc_bias[1];
+  pdata[2] = v[2]-acc_bias[2];
+  pdata[3] = pitch-angle_bias[0];
+  pdata[4] = roll-angle_bias[1];
+
+  
 }

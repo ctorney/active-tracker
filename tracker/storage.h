@@ -11,6 +11,7 @@
 const byte PIN_FLASH_CS = 32; // 
 #include <SPI.h>
 #include <SparkFun_SPI_SerialFlash.h>
+#include "LoraMessage.h" //https://github.com/thesolarnomad/lora-serialization
 
 //// flags to indicate whether the board had to reboot from the watchdog
 //#define WD_FLAG_TRUE 0xAA   
@@ -37,8 +38,8 @@ public:
 
   void wd_shutdown();
 
-  void read_next_message();
-  void write_next_message();
+  LoraMessage read_next_message();
+  void write_next_message(location_reading location, activity_reading activity);
   void send_successful();
   bool anything_to_send();
 
@@ -50,8 +51,10 @@ private:
   long save_count;
   long send_count;
 
-  size_t location_size;
-  size_t activity_size;
+
+  int size_of_location = 12; 
+  int size_of_activity = 49; 
+  
 
 };
 /**************************************************************************/

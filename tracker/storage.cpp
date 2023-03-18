@@ -1,9 +1,5 @@
 #include "storage.h"
 
-//Storage::Storage() {
-//  // I guess nothing ...
-//  
-//}
 
 bool Storage::begin() {
   
@@ -32,74 +28,18 @@ bool Storage::begin() {
   Serial.print(F("Device ID: 0x"));
   Serial.println(flashDrive.getDeviceID(), HEX);
 
-    // can't keep anything after a reboot unfortunately
-    flashDrive.erase();
-//
-//    for (int x = 0 ; x < 10 ; x++)
-//    {
-//      
-//
-//      byte val = flashDrive.readByte(x);
-//      if (val < 0x10) Serial.print("0");
-//      Serial.println(val, HEX);
-//      
-//    }
-//
-//    Serial.println("============");
-//    uint8_t myVal[4] = {0xDE, 0xAD, 0xBE, 0xEF};
-//    for (int x = 0 ; x < 10 ; x += 4)
-//    {
-//      flashDrive.writeBlock(x, myVal, 4); //Address, pointer, size
-//    }
-//
-//    for (int x = 0 ; x < 10 ; x++)
-//    {
-//      byte val = flashDrive.readByte(x);
-//      if (val < 0x10) Serial.print("0");
-//      Serial.println(val, HEX);
-//    }
-//
-////    uint8_t myVal2[4] = {0x00, 0x00, 0x00, 0x00};
-////    for (int x = 0 ; x < 0x0004 ; x += 4)
-////    {
-////      flashDrive.writeBlock(x, myVal2, 4); //Address, pointer, size
-////    }
-//  byte wd_flag = flashDrive.readByte(WD_FLAG_PTR);
-//      Serial.print("flag: ");
-//  Serial.println(wd_flag);
-//
-//  if (wd_flag==WD_FLAG_TRUE)
-//  {
-//
-//      Serial.println("reading from flash");
-//
-////    flashDrive.writeByte((uint32_t)WD_FLAG_PTR, )
-//    flashDrive.readBlock(SAVE_COUNT_PTR,(uint8_t *)&save_count,sizeof(save_count));
-//    flashDrive.readBlock(SEND_COUNT_PTR,(uint8_t *)&send_count,sizeof(send_count));
-//  }
-//  else
-//  {
-//    save_count=0;
-//    send_count=0;
-//  }
-//  flashDrive.writeByte(WD_FLAG_PTR, WD_FLAG_FALSE);
-//  Serial.print("save count : ");
-//  Serial.println(save_count);
-//Serial.print("send count : ");
-//  Serial.println(send_count);
+  // can't keep anything after a reboot unfortunately
+  flashDrive.erase();
+
   return true;
 }
 
 void Storage::wd_shutdown(){
-//  flashDrive.writeByte(WD_FLAG_PTR, WD_FLAG_TRUE);
-//
-//  flashDrive.writeBlock(SAVE_COUNT_PTR,(uint8_t *)&save_count,sizeof(save_count));
-//  flashDrive.writeBlock(SEND_COUNT_PTR,(uint8_t *)&send_count,sizeof(send_count));
-    
+   
 }
 
 
-void Storage::write_next_message()
+void Storage::write_next_message(location_reading location, activity_reading activity)
 {
 
     if (save_count==MAX_STORAGE){
@@ -108,26 +48,38 @@ void Storage::write_next_message()
       flashDrive.erase();
     }
 
-//  location_address=   (save_count/2)*sizeof(page)
-//  acivity_address=   (save_count/2)*sizeof(page) + sizeof(location)
-    // write location at loc address
+
+    int location_address = (save_count/2)*(size_of_location + size_of_activity);
+
+    flashDrive.writeBlock(location_address,(uint8_t *)&location.start_time,4);
+    flashDrive.writeBlock(location_address+4,(uint8_t *)&location.lat,4);
+    flashDrive.writeBlock(location_address+8,(uint8_t *)&location.lon,4);
+
+    int activity_address=  (save_count/2)*(size_of_location + size_of_activity) + (size_of_location);
+
+    flashDrive.writeBlock(activity_address,(uint8_t *)&activity.start_time,4);
+    flashDrive.writeBlock(activity_address+4,(uint8_t *)&activity.activities,sizeof(activity.activities));
     
     save_count+=2;
-    
 
-    
 }
 
 bool Storage::anything_to_send()
 {
-  return (send_count<save_count)
+ 
+  if (send_count<save_count)
+    return true;
+  else
+    return false;
+
 }
 
 void Storage::send_successful()
 {
   send_count++;
-  if ((send_count==save_count)&&(send_count==RESET_THRESHOLD))
-  {
+   
+  if ((send_count==save_count)&&(send_count>=RESET_THRESHOLD))
+  {  
       save_count=0;
       send_count=0;
       flashDrive.erase();
@@ -135,25 +87,38 @@ void Storage::send_successful()
 
 }
 
-void Storage::read_next_message()
+LoraMessage Storage::read_next_message()
 {
+  LoraMessage message;
 
-//  location_address=   save_count*sizeof(page)
-//  acivity_address=   save_count*sizeof(page) + sizeof(location)
-    // write location at loc address
-    if (send_count % 2 == 0)
-    {
-        // sending location 
-        //  location_address=   (send_count/2)*sizeof(page)
-        // build lora message
-    }
-    else{
+  if (send_count % 2 == 0)
+  {
+    int location_address = (send_count/2)*(size_of_location + size_of_activity);
 
-              // sending location 
-        //  activity_address=   (send_count/2)*sizeof(page) + sizeof(location)
+    long location_time;
+    float location_data[2];
+    flashDrive.readBlock(location_address,(uint8_t *)&location_time,sizeof(location_time));
+    flashDrive.readBlock(location_address + 4,(uint8_t *)&location_data,sizeof(location_data));
     
-    }
+    message.addUnixtime(location_time);
+    message.addLatLng(location_data[0],location_data[1]);
     
-
+  }
+  else
+  {
+    int activity_address = (send_count/2)*(size_of_location + size_of_activity) + (size_of_location);
+    
+    long start_time;
+    byte activities[45];
+    
+    flashDrive.readBlock(activity_address,(uint8_t *)&start_time,sizeof(start_time));
+    flashDrive.readBlock(activity_address+4,(uint8_t *)&activities,sizeof(activities));
+    
+    message.addUnixtime(start_time);
+    for (int i=0;i<45;i++)
+      message.addUint8(activities[i]);
+  }
+    
+  return message;
     
 }
