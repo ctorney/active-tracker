@@ -74,10 +74,14 @@ void setup()
 
     Serial.println("**********");
     Serial.println("**********");
-
     
-    pinMode(LORA_RESET, OUTPUT);  //LORA reset pin declaration as output
-    digitalWrite(LORA_RESET, LOW);  //turn off LORA module
+    if (!lora.begin()) 
+    {
+      Serial.println("ERROR: lora");
+    }
+    
+//    pinMode(LORA_RESET, OUTPUT);  //LORA reset pin declaration as output
+//    digitalWrite(LORA_RESET, LOW);  //turn off LORA module
     Serial.println("LoRa Off.");
     delay(500);
     
@@ -95,9 +99,9 @@ void setup()
     }
    
   rtc.begin(); // initialize RTC
-  Serial.println("\nWDTZero-Demo : Setup Soft Watchdog at 32S interval"); 
+  Serial.println("\nWDTZero-Demo : Setup Soft Watchdog at 8M interval"); 
  WatchDogTimer.attachShutdown(wd_shutdown);
- WatchDogTimer.setup(WDT_SOFTCYCLE16S);  // initialize WDT-softcounter refesh cycle on 16m interval
+ WatchDogTimer.setup(WDT_SOFTCYCLE8M);  // initialize WDT-softcounter refesh cycle on 8m interval
 WatchDogTimer.clear();
   WatchDogTimer.setup(WDT_OFF);  //watchdog off
 
@@ -249,7 +253,7 @@ void loop()
      delay(1000);
      if (millis() - lora_start_time >= lora_run_time) 
      {
-      lora.deactivate();
+//      lora.deactivate();
       LORA_ACTIVE=false;
      }
 

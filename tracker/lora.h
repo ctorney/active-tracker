@@ -8,19 +8,26 @@
 #include "storage.h"
 #include "LoraMessage.h" //https://github.com/thesolarnomad/lora-serialization
 
+
+# define WBEEST_APP_KEY "434F4C494E5357494C44454245455354"
+
 class Lora {
 public:
   
   bool begin();
   bool update(Storage* storage);
 
-  
-  
-  void deactivate();
+  bool join();
+  bool send_message(LoraMessage message);
+    
 
 
 private:
-
+  void at_query(String atstring);
+  bool lora_active = false;
+  bool join_success = false;
+  bool activate();
+  void deactivate();
 
 };
 
