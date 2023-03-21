@@ -239,6 +239,8 @@ void loop()
       Serial.println("writing to storage...");
 
       storage.write_next_message(latest_location, classifier.latest_activity);
+      Serial.println("write complete.");
+
       // turn on lora
       LORA_ACTIVE=true;
       lora_start_time = millis();
@@ -260,8 +262,8 @@ void loop()
     }
     
     if ((!GPS_ACTIVE) && (!IMU_ACTIVE) && (!LORA_ACTIVE)) {
-            Serial.println("going to sleep...");
-      delay(100000);
+      Serial.println("going to sleep...");
+      delay(10000);
 //      rtc.standbyMode();
     }
 

@@ -51,7 +51,7 @@ private:
   long save_count;
   long send_count;
 
-
+  void checkStart();
   int size_of_location = 12; 
   int size_of_activity = 49; 
   

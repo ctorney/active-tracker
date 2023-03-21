@@ -38,10 +38,18 @@ void Storage::wd_shutdown(){
    
 }
 
+void Storage::checkStart(){
+
+    if (flashDrive.begin(PIN_FLASH_CS, 2000000, SPI1) == false)
+    {
+      Serial.println(F("SPI Flash not detected.."));
+    }
+}  
 
 void Storage::write_next_message(location_reading location, activity_reading activity)
 {
 
+    checkStart();
     if (save_count==MAX_STORAGE){
       save_count=0;
       send_count=0;
@@ -82,6 +90,7 @@ void Storage::send_successful()
   {  
       save_count=0;
       send_count=0;
+      checkStart();
       flashDrive.erase();
   }
 
@@ -89,7 +98,13 @@ void Storage::send_successful()
 
 LoraMessage Storage::read_next_message()
 {
+
+  checkStart();
+  
   LoraMessage message;
+
+
+  
 
   if (send_count % 2 == 0)
   {
