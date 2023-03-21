@@ -5,6 +5,8 @@
 
 bool Lora::begin() {
 
+    pinMode(LORA_IRQ_DUMB, OUTPUT);
+
   if (!activate()) 
     return false;
     
@@ -51,7 +53,7 @@ String answer;
   at_query("AT+RTYNUM?");
   SerialLoRa.print("AT+RTYNUM=3");
   
-
+  join();
   deactivate();
   return true;
 }
@@ -225,7 +227,7 @@ void Lora::deactivate() {
     return;
   digitalWrite(LORA_IRQ_DUMB, HIGH);
   SerialLoRa.println("AT$DETACH"); // request UART to disconnect
-  delay(100);
+  delay(1000);
   SerialLoRa.end();
   lora_active=false;
 

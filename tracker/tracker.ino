@@ -65,6 +65,8 @@ unsigned long lora_start_time = 0;
 
 void setup() 
 {
+
+  
     Serial.begin(115200);
     delay(4000);
     Serial.println("");
@@ -80,9 +82,7 @@ void setup()
       Serial.println("ERROR: lora");
     }
     
-//    pinMode(LORA_RESET, OUTPUT);  //LORA reset pin declaration as output
-//    digitalWrite(LORA_RESET, LOW);  //turn off LORA module
-    Serial.println("LoRa Off.");
+//  Serial.println("LoRa Off.");
     delay(500);
     
     if (!storage.begin()) 
@@ -154,7 +154,7 @@ void wake_gps()
    digitalWrite(GPS_WAKE_PIN, HIGH);
    GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
    GPS.sendCommand(PMTK_SET_NMEA_UPDATE_100_MILLIHERTZ);
-   GPS.sendCommand(PMTK_ALWAYS_LOCATE);
+//   GPS.sendCommand(PMTK_ALWAYS_LOCATE);
 }
 
 void pause_gps()
