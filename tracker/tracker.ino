@@ -105,6 +105,7 @@ void wake_gps()
    digitalWrite(GPS_WAKE_PIN, HIGH);
    GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
    GPS.sendCommand(PMTK_SET_NMEA_UPDATE_100_MILLIHERTZ);
+   GPS.fix = false;
 }
 
 void pause_gps()
