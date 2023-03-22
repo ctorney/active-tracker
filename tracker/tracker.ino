@@ -1,21 +1,15 @@
 
 #include <Wire.h>
 #include <RTCZero.h>
-
 #include "WDTZero.h"
-
 
 #include "storage.h"
 #include "classifier.h"
 #include "lora.h"
 
-
 #include <Adafruit_GPS.h>
 Adafruit_GPS GPS(&Wire);
 
-
-#define SECRET_APP_EUI "xxxxxxxxxxxxx"
-#define SECRET_APP_KEY "yyyyyyyyyyyyyyyyyyyyyyy"
 
 #define I2C_ADDRESS 0x10
 
@@ -26,23 +20,8 @@ Adafruit_GPS GPS(&Wire);
 
 
 
-//unsigned int segment_counter = 0;
-
-//float predict_data[N_INPUTS];
-//float prediction[N_OUTPUTS];
-
-
-
-//record_type record[8];
-// 30 minutes of activities with 2 bits every 10 seconds gives 45 bytes
-
-
-
-/* Create an rtc object */
 RTCZero rtc;
-
-
-WDTZero WatchDogTimer; 
+WDTZero wdt; 
 
 Storage storage;
 Classifier classifier;
@@ -53,11 +32,11 @@ bool IMU_ACTIVE = false;
 bool LORA_ACTIVE = false;
 
 
-unsigned long gps_run_time = 1000;// debug *60*10;  // gps will run for up to 10 minutes to get a fix
+unsigned long gps_run_time = 1000*60*10;  // gps will run for up to 10 minutes to get a fix
 unsigned long lora_run_time = 1000*60*20; // lora will broadcast for up to 20 minutes every hour
 
 
-unsigned long imu_interval = 2;//DEBUG 00; // update imu every 200ms for 5hz readings
+unsigned long imu_interval = 200; // update imu every 200ms for 5hz readings
 unsigned long last_imu_time = 0;
 
 unsigned long gps_start_time = 0;  
@@ -65,86 +44,58 @@ unsigned long lora_start_time = 0;
 
 void setup() 
 {
-
   
-    Serial.begin(115200);
-    delay(4000);
-    Serial.println("");
-
-    Serial.println("");
-    Serial.println("");
-
-    Serial.println("**********");
-    Serial.println("**********");
-    
-    if (!lora.begin()) 
-    {
-      Serial.println("ERROR: lora");
-    }
-    
-//  Serial.println("LoRa Off.");
-    delay(500);
-    
-    if (!storage.begin()) 
-    {
-      Serial.println("ERROR: storage");
-    }
-
-
-        
+  Serial.begin(115200);
+  delay(4000);
+  Serial.println("\n\n*****************\n*****************\n");
+  
+  if (!lora.begin()) 
+  {
+    Serial.println("ERROR: lora");
+  }
+  delay(500);
+  
+  if (!storage.begin()) 
+  {
+    Serial.println("ERROR: storage");
+  }
+  delay(500);
+      
   if (!classifier.begin()) 
-   {
-      Serial.println("ERROR: classifier");
-    
-    }
-   
-  rtc.begin(); // initialize RTC
-  Serial.println("\nWDTZero-Demo : Setup Soft Watchdog at 8M interval"); 
- WatchDogTimer.attachShutdown(wd_shutdown);
- WatchDogTimer.setup(WDT_SOFTCYCLE8M);  // initialize WDT-softcounter refesh cycle on 8m interval
-WatchDogTimer.clear();
-  WatchDogTimer.setup(WDT_OFF);  //watchdog off
+  {
+    Serial.println("ERROR: classifier");
+  }
+  delay(500);
 
-//  while (true){}
+  if (!GPS.begin(I2C_ADDRESS)) 
+  {
+    Serial.println("ERROR: GPS");
+  }
+  delay(500);
   
-   if (!GPS.begin(I2C_ADDRESS)) 
-   {
-      Serial.println("ERROR: GPS");
-    
-    }
-
-  //GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
+  pinMode(GPS_WAKE_PIN, OUTPUT);
+  digitalWrite(GPS_WAKE_PIN, HIGH);
+  
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_100_MILLIHERTZ);
   
-  
-
-//   if (!initialiseIMU())  {Serial.println("ERROR: ICM ");}
-   Serial.println("initialised...");
-
-//  if (!modem.begin(EU868)) {
-//    Serial.println("Failed to start module");
-//    while (1) {}
-//  };
-//  Serial.print("Your module version is: ");
-//  Serial.println(modem.version());
-//  Serial.print("Your device EUI is: ");
-//  Serial.println(modem.deviceEUI());
-  delay(1);
-
-
+ 
+  rtc.begin(); // initialize RTC
   rtc.setAlarmTime(0, 0, 0);
   rtc.enableAlarm(rtc.MATCH_MMSS);
+  delay(500);
+
+  for (int i = 0; i < 10; i++) 
+  {
+    digitalWrite(LED_BUILTIN, HIGH);   // 10 flashes indicate success
+    delay(200);                       
+    digitalWrite(LED_BUILTIN, LOW);    
+    delay(200);
+  }
   
-//  rtc.attachInterrupt(quarter_hour_alarm);
+  
+ }
 
-}
-
-void wd_shutdown()
-{
-  Serial.println("\nshutting down ...");
-  storage.wd_shutdown();
-}
 
 
 void wake_gps()
@@ -154,14 +105,13 @@ void wake_gps()
    digitalWrite(GPS_WAKE_PIN, HIGH);
    GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
    GPS.sendCommand(PMTK_SET_NMEA_UPDATE_100_MILLIHERTZ);
-//   GPS.sendCommand(PMTK_ALWAYS_LOCATE);
 }
 
 void pause_gps()
 {
    Serial.println("pausing gps");
    digitalWrite(GPS_WAKE_PIN, LOW);    
-//      GPS.sendCommand(PMTK_BACKUP_MODE);
+   GPS.sendCommand(PMTK_BACKUP_MODE);
 }
 
 bool waiting_on_first_fix = true;
@@ -184,16 +134,19 @@ location_reading latest_location;
 void loop() 
 {
 
+  
     if ((!GPS_ACTIVE) && (!IMU_ACTIVE) && (!LORA_ACTIVE))
     {
       // if nothing active then we are at the top of the hour so wake up the gps and imu
       wake_gps();
       GPS_ACTIVE=true;
       IMU_ACTIVE=true;
-      classifier.activate(rtc.getEpoch());
       gps_start_time = millis();
       latest_location.lat = 0.0f;
       latest_location.lon = 0.0f;
+      
+      wdt.setup(WDT_SOFTCYCLE8M);  // initialize WDT-softcounter refesh cycle on 8m interval
+      classifier.activate(rtc.getEpoch());
 
     }
 
@@ -210,8 +163,8 @@ void loop()
          // either we got a fix or we're out of time
          if (GPS.fix)
          {
-            latest_location.lat = GPS.lat;
-            latest_location.lon = GPS.lon;
+            latest_location.lat = GPS.latitudeDegrees;
+            latest_location.lon = GPS.longitudeDegrees;
             update_time();
          }
          GPS_ACTIVE=false;
@@ -250,12 +203,9 @@ void loop()
     if (LORA_ACTIVE)
     {
 
-     // try_send();
      LORA_ACTIVE = lora.update(&storage);
-     delay(1000);
      if (millis() - lora_start_time >= lora_run_time) 
      {
-//      lora.deactivate();
       LORA_ACTIVE=false;
      }
 
@@ -263,9 +213,14 @@ void loop()
     
     if ((!GPS_ACTIVE) && (!IMU_ACTIVE) && (!LORA_ACTIVE)) {
       Serial.println("going to sleep...");
-      delay(100000);
-//      rtc.standbyMode();
+      wdt.setup(WDT_OFF);  //watchdog 
+      rtc.standbyMode();
     }
+
+    wdt.clear();
+   
+  
+
 
     
 }
