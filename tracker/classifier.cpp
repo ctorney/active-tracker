@@ -102,7 +102,7 @@ bool Classifier::update(){
 
     // FOR DEBUGGING ONLY!!!!!!!!!!
     // WE'LL SET ACTIVITY TO BE EQUAL TO THE BIT_COUNTER FOR THE FIRST HALF
-    // THEN EQUAL TO 4 - BIT_COUNTER FOR THE SECOND HALF
+    // THEN EQUAL TO 3 - BIT_COUNTER FOR THE SECOND HALF
     activity = 3 - bit_counter;
     if (imu_counter<23)
     {
@@ -112,19 +112,23 @@ bool Classifier::update(){
     // DELETE BEFORE DEPLOYMENT TO USE THE REAL CNN PREDICTIONS
 
     segment_counter=0;
-    
+
+    // set so that the first entry goes into the most significant bit and we read
+    // right to left in order of the temporal sequence
+    int msb = 3 - bit_counter;
+
     switch (activity){
         case 0:
           break;
         case 1:
-          bitWrite(latest_activity.activities[imu_counter], 2*bit_counter, 1);
+          bitWrite(latest_activity.activities[imu_counter], 2*msb, 1);
           break;
         case 2:
-          bitWrite(latest_activity.activities[imu_counter], 2*bit_counter+1, 1);
+          bitWrite(latest_activity.activities[imu_counter], 2*msb+1, 1);
           break;
         case 3:
-          bitWrite(latest_activity.activities[imu_counter], 2*bit_counter, 1);
-          bitWrite(latest_activity.activities[imu_counter], 2*bit_counter+1, 1);
+          bitWrite(latest_activity.activities[imu_counter], 2*msb, 1);
+          bitWrite(latest_activity.activities[imu_counter], 2*msb+1, 1);
           break;
       }
 
