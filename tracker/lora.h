@@ -9,6 +9,10 @@
 #include "LoraMessage.h" //https://github.com/thesolarnomad/lora-serialization
 
 
+#define ERR_NOT_JOINED -5
+#define ERR_ALREADY_JOINED -6
+#define MODEM_OK 1
+
 
 class Lora {
 public:
@@ -23,13 +27,12 @@ public:
 
 private:
   void sendQuery(String atstring);
-  bool sendCommand(String atstring);
+  int sendCommand(String atstring);
   bool lora_active = false;
   bool join_success = false;
   bool activate();
   void deactivate();
   String WBEEST_APP_KEY="434F4C494E5357494C44454245455354";
-
 };
 
 

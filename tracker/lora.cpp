@@ -77,8 +77,16 @@ bool Lora::join(){
   if (!activate()) 
     return joined;
 
-    
-  if (sendCommand("AT+JOIN")) // request join
+
+//  // DEBUG SECTION
+//  deactivate();
+//  delay(100);
+//  return true;
+  // END DEBUG SECTION
+  
+
+  int modem_status = sendCommand("AT+JOIN");
+  if (modem_status==MODEM_OK) // request join
   {  
 
     long lora_start_time = millis();
@@ -91,23 +99,12 @@ bool Lora::join(){
       modem_ans = SerialLoRa.readStringUntil('\r\n');
   
   
-      if (modem_ans.startsWith("+OK")) {
-        Serial.println("modem OK");
-      }
-      if (modem_ans.startsWith("+ERR")){
-          Serial.print("modem error");
-          Serial.println(modem_ans);
-          
-          // check error code 
-          break;
-      }
       if (modem_ans.startsWith("+EVENT=1,0")){
-          Serial.println("no ack recv");
-          // check error code 
+          Serial.println("join failed");
           break;
       }
       if (modem_ans.startsWith("+EVENT=1,1")){
-          Serial.println("ack recv");
+          Serial.println("join succeeded");
           joined = true;
           break;
       }
@@ -116,6 +113,12 @@ bool Lora::join(){
       }
     }
   }
+
+  if (modem_status==ERR_ALREADY_JOINED) // already joined
+    joined = true;
+
+  
+  
   deactivate();
   delay(100);
   return joined;
@@ -124,49 +127,73 @@ bool Lora::join(){
 
 bool Lora::send_message(LoraMessage message){
 
+
+  Serial.println("sending message");
+  
+  Serial.println(message.getLength());
   bool message_sent = false;
   if (!activate()) 
     return message_sent;
-    
-  SerialLoRa.print("AT+PCTX 1,"); 
+
+  if (message.getLength()==12)
+  {
+    SerialLoRa.print("AT+PCTX 3,"); 
+  }
+  else
+  {
+    SerialLoRa.print("AT+PCTX 5,");
+  }
   SerialLoRa.print(message.getLength());
   SerialLoRa.print("\r"); 
   SerialLoRa.write(message.getBytes(),message.getLength()); 
 //  SerialLoRa.println(""); 
 
+  int modem_status = 0;
 
-  long lora_start_time = millis();
-  long lora_timeout = 60*1000*5;  // break after 5 minutes
-  String modem_ans;
+  String answer;
   while (true)
   {
   
-    modem_ans = SerialLoRa.readStringUntil('\r\n');
-
-
-    if (modem_ans.startsWith("+OK")) {
-      Serial.println("modem OK");
+    answer = SerialLoRa.readStringUntil('\r\n');
+    if (answer.startsWith("+OK")){
+      modem_status=MODEM_OK;
+      break;
     }
-    if (modem_ans.startsWith("+ERR")){
-        Serial.println("modem error");
-        // check error code 
-        break;
-    }
-    if (modem_ans.startsWith("+NOACK")){
-        Serial.println("no ack recv");
-        // check error code 
-        break;
-    }
-    if (modem_ans.startsWith("+ACK")){
-        Serial.println("ack recv");
-        message_sent = true;
-        break;
-    }
-    if (millis() - lora_start_time > lora_timeout){
+    if (answer.startsWith("+ERR")){
+      modem_status = answer.substring(answer.indexOf("=")+1).toInt();
       break;
     }
   }
+
+  if (modem_status==MODEM_OK)
+  {
+    long lora_start_time = millis();
+    long lora_timeout = 60*1000*2;  // break after 2 minutes
+    String modem_ans;
+    while (true)
+    {
+    
+      modem_ans = SerialLoRa.readStringUntil('\r\n');
+      if (modem_ans.startsWith("+NOACK")){
+          Serial.println("no ack recv");
+          message_sent = false;
+
+          break;
+      }
+      if (modem_ans.startsWith("+ACK")){
+          Serial.println("ack recv");
+          message_sent = true;
+          break;
+      }
+      if (millis() - lora_start_time > lora_timeout){
+        break;
+      }
+    }
+  }
+
  
+  if (modem_status==ERR_NOT_JOINED) // already joined
+    join_success = false;
 // Serial.println("Start sending..");   
 //  for (int i=0;i<message.getLength();i++){
 //    Serial.println(message.getBytes()[i],BIN);   
@@ -255,9 +282,9 @@ void Lora::sendQuery(String atstring)
  
 }
 
-bool Lora::sendCommand(String atstring)
+int Lora::sendCommand(String atstring)
 {
-  bool success = false;
+  int modem_status = 0;
 
   Serial.print("Sending command: ");
   Serial.println(atstring);
@@ -270,15 +297,19 @@ bool Lora::sendCommand(String atstring)
   
     answer = SerialLoRa.readStringUntil('\r\n');
     if (answer.startsWith("+OK")){
-      success=true;
+      modem_status=MODEM_OK;
       break;
     }
     if (answer.startsWith("+ERR")){
-      success=false;
+      // get the error code
+      modem_status = answer.substring(answer.indexOf("=")+1).toInt();
+      
+      
+
       break;
     }
   }
   Serial.print("Response: ");
   Serial.println(answer);
-  return success;
+  return modem_status;
 }

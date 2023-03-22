@@ -263,7 +263,7 @@ void loop()
     
     if ((!GPS_ACTIVE) && (!IMU_ACTIVE) && (!LORA_ACTIVE)) {
       Serial.println("going to sleep...");
-      delay(10000);
+      delay(100000);
 //      rtc.standbyMode();
     }
 
