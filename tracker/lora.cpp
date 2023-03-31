@@ -12,15 +12,17 @@ bool Lora::begin() {
   if (!activate()) 
     return false;
     
-  delay(100);
   sendQuery("AT+VER?");
+  
   sendQuery("AT+DEVEUI?");
+  
+  
   sendQuery("AT+APPEUI?");
 
-  delay(100);
-
+  
   
   sendCommand(String("AT+APPKEY=") + WBEEST_APP_KEY); // set appkey
+  
   sendQuery("AT+APPKEY?");
   
   sendCommand("AT+MODE=1");
@@ -35,9 +37,11 @@ bool Lora::begin() {
 //  sendQuery("AT+DELAY?");
   
 
-  sendCommand("AT+RTYNUM=3");
+  sendCommand("AT+RTYNUM=15");
   sendQuery("AT+RTYNUM?");  
+  
   join();
+  
   deactivate();
   return true;
 }
@@ -62,9 +66,11 @@ bool Lora::update(Storage* storage) {
   bool send_success = send_message(message);
  
   if (send_success)
+  {
     storage->send_successful();
- 
-  return send_success;
+    session_success = true;
+  }
+  return ( send_success || session_success );
 
 }
 
@@ -279,6 +285,7 @@ void Lora::sendQuery(String atstring)
   }
   Serial.print("Response: ");
   Serial.println(answer);
+  delay(500);
  
 }
 
@@ -311,5 +318,6 @@ int Lora::sendCommand(String atstring)
   }
   Serial.print("Response: ");
   Serial.println(answer);
+  delay(500);
   return modem_status;
 }

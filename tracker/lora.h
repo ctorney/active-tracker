@@ -23,6 +23,7 @@ public:
   bool join();
   bool send_message(LoraMessage message);
     
+  bool session_success = false;
 
 
 private:

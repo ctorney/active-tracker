@@ -18,6 +18,7 @@ Adafruit_GPS GPS(&Wire);
 #define PMTK_ALWAYS_LOCATE_8 "$PMTK225,8*23" 
 #define GPS_WAKE_PIN 0
 
+#define MAX_HDOP 1.0
 
 
 RTCZero rtc;
@@ -38,6 +39,9 @@ unsigned long lora_run_time = 1000*60*20; // lora will broadcast for up to 20 mi
 
 unsigned long imu_interval = 200; // update imu every 200ms for 5hz readings
 unsigned long last_imu_time = 0;
+
+unsigned long gps_check_interval = 60*1000; // check the gps fix every minute  
+unsigned long gps_last_check_time = 0;  
 
 unsigned long gps_start_time = 0;  
 unsigned long lora_start_time = 0; 
@@ -102,10 +106,13 @@ void wake_gps()
 {
    Serial.println("waking up gps");
    gps_start_time = millis();
+   gps_last_check_time = millis(); 
    digitalWrite(GPS_WAKE_PIN, HIGH);
    GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
    GPS.sendCommand(PMTK_SET_NMEA_UPDATE_100_MILLIHERTZ);
    GPS.fix = false;
+   GPS.HDOP = 2.0*MAX_HDOP;
+   GPS.satellites = 0;
 }
 
 void pause_gps()
@@ -120,7 +127,7 @@ bool waiting_on_first_fix = true;
 void update_time()
 {
 
-  if ((GPS.satellites>4)||(waiting_on_first_fix))
+  if ((GPS.satellites > 10)||(waiting_on_first_fix))
   {
       rtc.setTime(GPS.hour, GPS.minute, GPS.seconds);
       rtc.setDate(GPS.day, GPS.month, GPS.year);
@@ -138,13 +145,14 @@ void loop()
   
     if ((!GPS_ACTIVE) && (!IMU_ACTIVE) && (!LORA_ACTIVE))
     {
-      // if nothing active then we are at the top of the hour so wake up the gps and imu
+      // if nothing active then we are at the top of the hour so wake up the gps and imu and reset variables
       wake_gps();
       GPS_ACTIVE=true;
       IMU_ACTIVE=true;
       gps_start_time = millis();
       latest_location.lat = 0.0f;
       latest_location.lon = 0.0f;
+      lora.session_success = false;
       
       wdt.setup(WDT_SOFTCYCLE8M);  // initialize WDT-softcounter refesh cycle on 8m interval
       classifier.activate(rtc.getEpoch());
@@ -157,21 +165,27 @@ void loop()
       char c = GPS.read();
       if (GPS.newNMEAreceived()) GPS.parse(GPS.lastNMEA());
 
-      if (((GPS.fix)&&(GPS.HDOP<1.0))|| ( millis() - gps_start_time >= gps_run_time) )
+      if ((millis() - gps_last_check_time) >= gps_check_interval) // Check fix quality every minute
       {
-         latest_location.start_time = rtc.getEpoch();
+        if ( ( (GPS.fix) && (GPS.HDOP < MAX_HDOP) ) || ( millis() - gps_start_time >= gps_run_time) )
+        {
+  
+           // either we got a fix or we're out of time
+           if (GPS.fix)
+           {
+              latest_location.lat = GPS.latitudeDegrees;
+              latest_location.lon = GPS.longitudeDegrees;
+              update_time();
+           }
+  
+           
+           latest_location.start_time = rtc.getEpoch();
+           GPS_ACTIVE=false;
+           pause_gps();
+        }
+        gps_last_check_time = millis(); 
 
-         // either we got a fix or we're out of time
-         if (GPS.fix)
-         {
-            latest_location.lat = GPS.latitudeDegrees;
-            latest_location.lon = GPS.longitudeDegrees;
-            update_time();
-         }
-         GPS_ACTIVE=false;
-         pause_gps();
       }
-
     }
 
     if (IMU_ACTIVE)
@@ -212,7 +226,7 @@ void loop()
 
     }
     
-    if ((!GPS_ACTIVE) && (!IMU_ACTIVE) && (!LORA_ACTIVE)) {
+    if ((!GPS_ACTIVE) && (!IMU_ACTIVE) && (!LORA_ACTIVE)) {      
       Serial.println("going to sleep...");
       wdt.setup(WDT_OFF);  //watchdog 
       rtc.standbyMode();
