@@ -138,7 +138,7 @@ var bitmap = function(byte) {
   var sequence_string = ('00000000' + Number(i).toString(2)).substr(-8);
   var results = [];
   for (var j = 0; j < 8; j += 2) {
-  	results.push(parseInt(sequence_string.substring(i, i + 2),2));
+  	results.push(parseInt(sequence_string.substring(j, j + 2),2));
   }
   //var bm = ('00000000' + Number(i).toString(2)).substr(-8).split('').map(Number);//.map(Boolean);
   return results;
