@@ -33,11 +33,11 @@ bool IMU_ACTIVE = false;
 bool LORA_ACTIVE = false;
 
 
-unsigned long gps_run_time = 1000*60*10;  // gps will run for up to 10 minutes to get a fix
+unsigned long gps_run_time = 1000*60*1;//0;  // gps will run for up to 10 minutes to get a fix
 unsigned long lora_run_time = 1000*60*20; // lora will broadcast for up to 20 minutes every hour
 
 
-unsigned long imu_interval = 200; // update imu every 200ms for 5hz readings
+unsigned long imu_interval = 20;//0; // update imu every 200ms for 5hz readings
 unsigned long last_imu_time = 0;
 
 unsigned long gps_check_interval = 60*1000; // check the gps fix every minute  
@@ -169,7 +169,19 @@ void loop()
       {
         if ( ( (GPS.fix) && (GPS.HDOP < MAX_HDOP) ) || ( millis() - gps_start_time >= gps_run_time) )
         {
-  
+
+          Serial.print("\nTime: ");
+          if (GPS.hour < 10) { Serial.print('0'); }
+          Serial.print(GPS.hour, DEC); Serial.print(':');
+          if (GPS.minute < 10) { Serial.print('0'); }
+          Serial.print(GPS.minute, DEC); Serial.print(':');
+          if (GPS.seconds < 10) { Serial.print('0'); }
+          Serial.println(GPS.seconds, DEC);
+          Serial.print("Location: ");
+          Serial.print(GPS.latitudeDegrees); Serial.print(GPS.lat);
+          Serial.print(", ");
+          Serial.print(GPS.longitudeDegrees); Serial.println(GPS.lon);
+       
            // either we got a fix or we're out of time
            if (GPS.fix)
            {
@@ -225,14 +237,15 @@ void loop()
      }
 
     }
-    
+
+    wdt.clear();
+
     if ((!GPS_ACTIVE) && (!IMU_ACTIVE) && (!LORA_ACTIVE)) {      
       Serial.println("going to sleep...");
       wdt.setup(WDT_OFF);  //watchdog 
       rtc.standbyMode();
     }
 
-    wdt.clear();
    
   
 

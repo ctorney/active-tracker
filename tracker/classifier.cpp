@@ -34,12 +34,7 @@ constexpr float bias_gain = 0.00001;     // averaging decay rate - should be ver
 
 
 bool Classifier::begin() {
-  if (!icm.begin_I2C()) 
-  {
-    Serial.println("ERROR: ICM ");
-    return false;
-  }
-
+  
   tf.begin(model_tflite);
 
  // check if model loaded fine
@@ -48,7 +43,13 @@ bool Classifier::begin() {
       Serial.println(tf.getErrorMessage());
       return false;
     }
-  
+
+  if (!icm.begin_I2C()) 
+  {
+    Serial.println("ERROR: ICM ");
+    return false;
+  }
+
   icm.setAccelRateDivisor(225);
   icm.setGyroRateDivisor(225);
 
@@ -77,6 +78,19 @@ void Classifier::activate(long unixtime){
   latest_activity.start_time = unixtime;
 
   memset(latest_activity.activities,0,sizeof(latest_activity.activities));
+
+  if (!icm.begin_I2C()) 
+  {
+    Serial.println("ERROR: ICM ");
+  }
+
+  icm.setAccelRateDivisor(225);
+  icm.setGyroRateDivisor(225);
+
+
+  icm.enableAccelDLPF(true, ICM20X_ACCEL_FREQ_5_7_HZ);
+  icm.enableGyrolDLPF(true, ICM20X_GYRO_FREQ_5_7_HZ);
+  delay(500);
   
   icm.getEvent(&accel, &gyro, &temp);
   float ax = float(accel.acceleration.x);
@@ -141,7 +155,10 @@ bool Classifier::update(){
     }
 
     if (imu_counter == SERIES_LENGTH) 
+    {
+      icm.reset();
       return false;
+    }
   }
   return true;
 }
