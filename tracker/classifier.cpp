@@ -37,8 +37,8 @@ bool Classifier::begin() {
   
   tf.begin(model_tflite);
 
- // check if model loaded fine
- if (!tf.isOk()) {
+  // check if model loaded fine
+  if (!tf.isOk()) {
       Serial.print("ERROR: ");
       Serial.println(tf.getErrorMessage());
       return false;
@@ -65,8 +65,6 @@ bool Classifier::begin() {
     
   acc_bias[2] = pow( ax*ax + ay*ay + az*az,0.5) ;
   filter.setup( ax,ay,az);     
-
-  Serial.println("IMU setup");
 
   return true;
 
@@ -103,6 +101,12 @@ void Classifier::activate(long unixtime){
   segment_counter=0;
 }
 
+
+void Classifier::deactivate(){
+
+  icm.reset();
+  return;
+}
 
 bool Classifier::update(){
 
@@ -155,10 +159,8 @@ bool Classifier::update(){
     }
 
     if (imu_counter == SERIES_LENGTH) 
-    {
-      icm.reset();
       return false;
-    }
+    
   }
   return true;
 }

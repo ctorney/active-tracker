@@ -6,8 +6,7 @@
 bool Lora::begin() {
 
   pinMode(LORA_IRQ_DUMB, OUTPUT);
-  if (!activate()) 
-    return false;
+  activate(); 
     
   sendQuery("AT+VER?");
   sendQuery("AT+DEVEUI?");
@@ -19,7 +18,7 @@ bool Lora::begin() {
 
 
   sendCommand("AT+MODE=1");
-  sendCommand("AT+RTYNUM=3");
+  sendCommand("AT+RTYNUM=8");
   sendCommand("AT+DELAY=5000,6000,5000,6000");
   sendCommand("AT+DUTYCYCLE=0");
 
@@ -27,9 +26,9 @@ bool Lora::begin() {
   sendQuery("AT+RTYNUM?");  
   sendQuery("AT+DELAY?");  
   
-  join();
+  join(); 
   
-  deactivate();
+  
   return true;
 }
 
@@ -48,7 +47,10 @@ bool Lora::update(Storage* storage) {
       return false;
   }
 
+  deactivate();
   LoraMessage message = storage->read_next_message();
+  activate();
+    
 
   bool send_success = send_message(message);
  
@@ -67,10 +69,8 @@ bool Lora::join(){
 
   bool joined = false;
 
-  if (!activate()) 
-    return joined;
-
-   Serial.println("attempting to join..");
+  
+  Serial.println("attempting to join..");
 
   int modem_status = sendCommand("AT+JOIN");
   if (modem_status==MODEM_OK) // join request sent
@@ -103,9 +103,6 @@ bool Lora::join(){
     joined = true;
 
   
-  
-  deactivate();
-  delay(100);
   return joined;
 }
 
@@ -116,8 +113,6 @@ bool Lora::send_message(LoraMessage message){
   
   Serial.println(message.getLength());
   bool message_sent = false;
-  if (!activate()) 
-    return message_sent;
 
   // location messages are length 12 and go to port 3
   // activity messages are length 49 and go to port 5
@@ -180,29 +175,27 @@ bool Lora::send_message(LoraMessage message){
   if (modem_status==ERR_NOT_JOINED) // already joined
     join_success = false;
 
-  deactivate();
-  delay(100);
 
   return message_sent;
   
 }
 
-bool Lora::activate() {
+void Lora::activate() {
 
   if (lora_active==true)
-    return true;
+    return;
   SerialLoRa.begin(19200); 
   long lora_start_time = millis();
   long lora_timeout = 10000;
   while(!SerialLoRa){
     if (millis() - lora_start_time > lora_timeout)
-      return false;
+      return;
   }
   
   digitalWrite(LORA_IRQ_DUMB, LOW);
   lora_active=true;
   delay(500);
-  return true;
+  return;
 }
 
 void Lora::deactivate() {
@@ -216,6 +209,7 @@ void Lora::deactivate() {
   sendCommand("AT$DETACH"); // request UART to disconnect
 
   lora_active=false;
+  delay(500);
 
   return;
 }

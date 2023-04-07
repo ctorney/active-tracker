@@ -30,6 +30,7 @@ public:
   
   
   void activate(long unixtime);
+  void deactivate();
 
   activity_reading latest_activity;
 

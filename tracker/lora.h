@@ -24,15 +24,15 @@ public:
   bool send_message(LoraMessage message);
     
   bool session_success = false;
-
+  void activate();
+  void deactivate();
 
 private:
   void sendQuery(String atstring);
   int sendCommand(String atstring);
   bool lora_active = false;
   bool join_success = false;
-  bool activate();
-  void deactivate();
+  
   String WBEEST_APP_KEY="434F4C494E5357494C44454245455354";
 };
 
