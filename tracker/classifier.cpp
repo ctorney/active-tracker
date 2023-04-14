@@ -117,18 +117,18 @@ bool Classifier::update(){
 
     tf.predict(predict_data, prediction);
     int activity = tf.probaToClass(prediction);
-
-    // FOR DEBUGGING ONLY!!!!!!!!!!
-    // WE'LL SET ACTIVITY TO BE EQUAL TO THE BIT_COUNTER FOR THE FIRST HALF
-    // THEN EQUAL TO 3 - BIT_COUNTER FOR THE SECOND HALF
-    activity = 3 - bit_counter;
-    if (imu_counter<23)
-    {
-      activity = bit_counter;
-    }
-    // END OF DEBUGGING CODE 
-    // DELETE BEFORE DEPLOYMENT TO USE THE REAL CNN PREDICTIONS
-
+//
+//    // FOR DEBUGGING ONLY!!!!!!!!!!
+//    // WE'LL SET ACTIVITY TO BE EQUAL TO THE BIT_COUNTER FOR THE FIRST HALF
+//    // THEN EQUAL TO 3 - BIT_COUNTER FOR THE SECOND HALF
+//    activity = 3 - bit_counter;
+//    if (imu_counter<23)
+//    {
+//      activity = bit_counter;
+//    }
+//    // END OF DEBUGGING CODE 
+//    // DELETE BEFORE DEPLOYMENT TO USE THE REAL CNN PREDICTIONS
+//    Serial.println(activity);
     segment_counter=0;
 
     // set so that the first entry goes into the most significant bit and we read

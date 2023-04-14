@@ -61,12 +61,6 @@ void setup()
   delay(500);
 
 
-  lora.deactivate();
-  if (!storage.begin()) 
-  {
-    Serial.println("ERROR: storage");
-  }
-  lora.activate();
   delay(500);
 
   if (!classifier.begin()) 
@@ -134,9 +128,11 @@ void update_time()
 
   if ((GPS.satellites > 10)||(waiting_on_first_fix))
   {
+    if((GPS.year > 2020) && (GPS.year < 2079)) {                                       
       rtc.setTime(GPS.hour, GPS.minute, GPS.seconds);
       rtc.setDate(GPS.day, GPS.month, GPS.year);
       waiting_on_first_fix = false;
+    }
   }
 }
 
@@ -220,7 +216,9 @@ void loop()
       classifier.deactivate();
       Serial.println("writing to storage...");
       lora.deactivate();
+      storage.begin();
       storage.write_next_message(latest_location, classifier.latest_activity);
+      storage.sleep();
       lora.activate();
       Serial.println("write complete.");
 
@@ -251,8 +249,7 @@ void loop()
       Serial.println(" milliseconds.");
 
       LowPower.deepSleep(60*60*1000 - run_time);
-
-//      rtc.standbyMode();
+      
     }
 
    

@@ -37,29 +37,88 @@ bool Lora::begin() {
 bool Lora::update(Storage* storage) {
 
   
-  if (!storage->anything_to_send())
-    return false;
  
+
+  deactivate();
+  storage->begin();
+  Serial.println("checking if send needed");
+  bool send_needed = storage->anything_to_send();
+  storage->sleep();  
+  
+  if (!send_needed)
+    return false;
+
+
+  Serial.println("send needed");
+
+  activate();
+
+  
   if (!join_success)
   {
     join_success = join();
     if (!join_success)
       return false;
   }
-
-  deactivate();
-  LoraMessage message = storage->read_next_message();
-  activate();
     
 
-  bool send_success = send_message(message);
- 
-  if (send_success)
+  uint8_t* message_buffer = storage->message_buffer;
+
+
+  bool activity_sent = false;
+
+  if (!location_sent)
   {
+    LoraMessage l_message;
+
+    long location_time;
+    float location_data[2];
+
+    memcpy((uint8_t *)&location_time, message_buffer, sizeof(location_time)); 
+    memcpy((uint8_t *)&location_data, &message_buffer[4], sizeof(location_data)); 
+
+
+    l_message.addUnixtime(location_time);
+    l_message.addLatLng(location_data[0],location_data[1]);
+
+
+    location_sent = send_message(l_message);
+
+  }
+  if (location_sent)
+  {
+    Serial.println("sending location message");
+
+    LoraMessage a_message;
+
+    long start_time;
+    byte activities[45];
+
+    memcpy((uint8_t *)&start_time, &message_buffer[12], sizeof(start_time)); 
+    memcpy((uint8_t *)&activities, &message_buffer[16], sizeof(activities)); 
+
+    a_message.addUnixtime(start_time);
+    for (int i=0;i<45;i++)
+      a_message.addUint8(activities[i]);
+
+    activity_sent = send_message(a_message);
+  }
+ 
+  if (activity_sent)
+  {
+    
+    Serial.println("sending activity message");
+
+    deactivate();
+    location_sent=false;
+    storage->begin();
     storage->send_successful();
     session_success = true;
+    storage->sleep();
+    activate();
   }
-  return ( send_success || session_success );
+
+  return ( activity_sent || session_success );
 
 }
 
@@ -68,7 +127,6 @@ bool Lora::update(Storage* storage) {
 bool Lora::join(){
 
   bool joined = false;
-
   
   Serial.println("attempting to join..");
 
@@ -172,7 +230,7 @@ bool Lora::send_message(LoraMessage message){
   }
 
  
-  if (modem_status==ERR_NOT_JOINED) // already joined
+  if (modem_status==ERR_NOT_JOINED) // not joined
     join_success = false;
 
 
