@@ -105,7 +105,8 @@ LoraMessage Storage::read_next_message()
 
   // delay a different amount of time between 0 and 30 seconds
   // so that collars don't try to send at the same moment
-  delay(1000*((save_count+send_count)%30));
+//  delay(1000*((save_count+send_count)%30));
+  delay(500);
   
 
   if (send_count % 2 == 0)

@@ -1,4 +1,5 @@
 
+
 #include <Wire.h>
 #include <RTCZero.h>
 #include "WDTZero.h"
@@ -15,9 +16,7 @@ Adafruit_GPS GPS(&Wire);
 
 #define I2C_ADDRESS 0x10
 
-#define PMTK_ALWAYS_LOCATE "$PMTK225,9*22" 
 #define PMTK_BACKUP_MODE "$PMTK225,4*2F" 
-#define PMTK_ALWAYS_LOCATE_8 "$PMTK225,8*23" 
 #define GPS_WAKE_PIN 0
 
 #define MAX_HDOP 1.0
